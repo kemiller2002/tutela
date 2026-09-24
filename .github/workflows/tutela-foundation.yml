@@ -23,4 +23,7 @@ jobs:
           test -f docs/RESULTS-UI.md
           python -m json.tool .echelon/tutela.json >/dev/null
           for f in schemas/*.json examples/*.json; do python -m json.tool "$f" >/dev/null; done
-          echo "Tutela foundation artifacts validated."
+      - name: Test deterministic gate
+        run: python -m unittest discover -s tests -v
+      - name: Verify example posture
+        run: python src/tutela_gate.py examples/security-assessment.json --check-declared
