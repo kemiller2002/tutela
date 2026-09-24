@@ -41,6 +41,22 @@ def validate(a):
                 errors.append(f"{iid or p} cannot be Verified without evidence")
             if x.get("state")=="Verified" and x.get("contradictoryEvidence"):
                 errors.append(f"{iid or p} cannot be Verified with contradictory evidence")
+            if x.get("state")=="Verified" and x.get("requiresIndependentVerification") is True:
+                attestations=x.get("verifierAttestations") or []
+                independent=[v for v in attestations if isinstance(v,dict) and v.get("independent") is True and v.get("verifier") and v.get("evidence")]
+                if not independent:
+                    errors.append(f"{iid or p} requires an independent verifier attestation")
+    evidence_ids=a.get("evidence",[])
+    if not isinstance(evidence_ids,list): errors.append("evidence must be an array when supplied")
+    else:
+        known=set(evidence_ids)
+        for x in inv or []:
+            if isinstance(x,dict):
+                for eid in (x.get("evidence") or [])+(x.get("contradictoryEvidence") or []):
+                    if known and eid not in known: errors.append(f"{x.get('id','invariant')} references undeclared evidence {eid}")
+    threat_ids=a.get("threats",[])
+    if not isinstance(threat_ids,list): errors.append("threats must be an array when supplied")
+    elif len(threat_ids) != len(set(threat_ids)): errors.append("duplicate threat id")
     exceptions=a.get("exceptions",[])
     if not isinstance(exceptions,list): errors.append("exceptions must be an array")
     else:
