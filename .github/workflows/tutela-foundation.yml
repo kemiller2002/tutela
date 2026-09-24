@@ -1,0 +1,26 @@
+name: Tutela Foundation
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate required Tutela artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f requirements/TUTELA-REQUIREMENTS.md
+          test -f security/SECURITY-PROFILE.md
+          test -f schemas/security-invariant.schema.json
+          test -f schemas/threat.schema.json
+          test -f schemas/evidence.schema.json
+          test -f schemas/security-assessment.schema.json
+          test -f schemas/exception.schema.json
+          test -f docs/RESULTS-UI.md
+          python -m json.tool .echelon/tutela.json >/dev/null
+          for f in schemas/*.json examples/*.json; do python -m json.tool "$f" >/dev/null; done
+          echo "Tutela foundation artifacts validated."
