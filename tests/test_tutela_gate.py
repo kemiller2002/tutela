@@ -27,4 +27,21 @@ class GateTests(unittest.TestCase):
         a=assessment(); a["invariantResults"].append(dict(a["invariantResults"][0]))
         self.assertEqual("INDETERMINATE",derive(a)[0])
 
+    def test_independent_verification_requirement_fails_closed(self):
+        a=assessment(); a["invariantResults"][0]["requiresIndependentVerification"]=True
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_independent_verifier_attestation_satisfies_requirement(self):
+        a=assessment(); i=a["invariantResults"][0]; i["requiresIndependentVerification"]=True
+        i["verifierAttestations"]=[{"verifier":"review-agent","independent":True,"evidence":["SEC-EVD-002"]}]
+        self.assertEqual("PASS",derive(a)[0])
+
+    def test_declared_evidence_reference_must_exist(self):
+        a=assessment(); a["evidence"]=["SEC-EVD-999"]
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_duplicate_threat_id_invalid(self):
+        a=assessment(); a["threats"]=["SEC-THR-001","SEC-THR-001"]
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
 if __name__=="__main__": unittest.main()
