@@ -20,12 +20,20 @@ DEFAULT_ROLE_REGISTRY=Path(__file__).resolve().parents[1]/"security"/"ROLE-REGIS
 def load_role_registry(path=None):
     return json.loads(Path(path or DEFAULT_ROLE_REGISTRY).read_text())
 
+def identity_binding_valid(identity):
+    return (isinstance(identity,dict)
+        and identity.get("provider")
+        and str(identity.get("subjectId","")).isdigit()
+        and identity.get("bindingVerified") is True
+        and identity.get("bindingEvidence"))
+
 def registered_roles(identity, registry, at=None):
     at=at or now_utc(); roles=set()
-    if registry.get("default") != "deny": return roles
+    if registry.get("default") != "deny" or not identity_binding_valid(identity): return roles
     for m in registry.get("memberships",[]):
         mi=m.get("identity") or {}
-        if mi.get("type") != identity.get("type") or mi.get("value") != identity.get("value"): continue
+        if not identity_binding_valid(mi): continue
+        if mi.get("provider") != identity.get("provider") or str(mi.get("subjectId")) != str(identity.get("subjectId")): continue
         try:
             vf=parse_time(m.get("validFrom")); vu=parse_time(m.get("validUntil"))
             if vf and vf > at: continue
@@ -42,7 +50,7 @@ def approval_authorized(approval, trust_policy, role_registry, weakening=False, 
     role=approval.get("role")
     if role not in registered_roles(identity,role_registry,at): return False
     for rule in trust_policy.get("approvalAuthorities",[]):
-        if (identity.get("type") in rule.get("identityTypes",[])
+        if (identity.get("kind") in rule.get("identityTypes",[])
             and role in rule.get("roles",[])
             and "trust-root-change" in rule.get("mayApprove",[])
             and (not weakening or rule.get("mayAuthorizeWeakening") is True)):
@@ -55,12 +63,12 @@ def validate_trust_root_change(change, trust_policy, role_registry, at=None):
     protected=set(trust_policy.get("protectedPaths",[]))
     touched=set(change.get("paths",[]))
     if not (protected & touched): return errors
-    for k in ("id","rationale","changedBy","previousDigest","newDigest"):
+    for k in ("id","rationale","changedBy","changedByIdentity","previousDigest","newDigest"):
         if not change.get(k): errors.append(f"trustRootChange.{k} is required")
     if change.get("previousDigest")==change.get("newDigest") and change.get("previousDigest"):
         errors.append("trustRootChange digests must describe an actual transition")
     approvals=change.get("approvals") or []
-    independent=[x for x in approvals if isinstance(x,dict) and x.get("approved") is True and x.get("approverIdentity") and x.get("evidence") and x.get("approverIdentity",{}).get("value") != change.get("changedBy") and approval_authorized(x,trust_policy,role_registry,False,at)]
+    independent=[x for x in approvals if isinstance(x,dict) and x.get("approved") is True and x.get("approverIdentity") and x.get("evidence") and str(x.get("approverIdentity",{}).get("subjectId")) != str((change.get("changedByIdentity") or {}).get("subjectId")) and approval_authorized(x,trust_policy,role_registry,False,at)]
     if len(independent) < int(trust_policy.get("requirements",{}).get("approvalsMinimum",1)):
         errors.append("protected trust-root change requires independent approval evidence")
     if change.get("weakening") is True:
