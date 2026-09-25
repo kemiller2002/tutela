@@ -1,14 +1,24 @@
 {
   "schemaVersion": 1,
   "id": "tutela-role-registry",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "default": "deny",
   "memberships": [],
   "semantics": {
-    "identityKey": "type:value",
+    "identityKey": "provider:subjectId",
     "roleSource": "registry-only",
     "assessmentRoleClaims": "non-authoritative",
     "expiredMembership": "deny",
-    "unknownMembership": "deny"
-  }
+    "unknownMembership": "deny",
+    "displayNameNonAuthoritative": true,
+    "identityBindingRequired": true
+  },
+  "identityProviders": [
+    {
+      "id": "github",
+      "subjectIdKind": "numeric-account-id",
+      "displayField": "login",
+      "verification": "platform-api-or-signed-oidc-evidence"
+    }
+  ]
 }
