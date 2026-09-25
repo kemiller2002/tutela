@@ -3,7 +3,10 @@
 from __future__ import annotations
 import json, sys
 from pathlib import Path
-from tutela_gate import derive
+try:
+    from .tutela_gate import derive
+except ImportError:
+    from tutela_gate import derive
 
 def project(a):
     posture,reasons=derive(a)
