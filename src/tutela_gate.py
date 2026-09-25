@@ -46,10 +46,21 @@ def validate(a):
                 independent=[v for v in attestations if isinstance(v,dict) and v.get("independent") is True and v.get("verifier") and v.get("evidence")]
                 if not independent:
                     errors.append(f"{iid or p} requires an independent verifier attestation")
-    evidence_ids=a.get("evidence",[])
-    if not isinstance(evidence_ids,list): errors.append("evidence must be an array when supplied")
+    evidence_items=a.get("evidence",[])
+    if not isinstance(evidence_items,list): errors.append("evidence must be an array when supplied")
     else:
+        evidence_objects=[e for e in evidence_items if isinstance(e,dict)]
+        evidence_ids=[e.get("id") if isinstance(e,dict) else e for e in evidence_items]
+        if len(evidence_ids) != len(set(evidence_ids)): errors.append("duplicate evidence id")
         known=set(evidence_ids)
+        for e in evidence_objects:
+            eid=e.get("id") or "evidence"
+            for k in ("id","producer","subjectRef","observedAt"):
+                if not e.get(k): errors.append(f"{eid}.{k} is required")
+            if e.get("subjectRef") and e.get("subjectRef") != subject.get("ref"):
+                errors.append(f"{eid} is bound to a different subject ref")
+            if e.get("invalidatedAt") and not e.get("invalidationReason"):
+                errors.append(f"{eid} invalidation requires a reason")
         for x in inv or []:
             if isinstance(x,dict):
                 for eid in (x.get("evidence") or [])+(x.get("contradictoryEvidence") or []):
@@ -78,9 +89,22 @@ def valid_exceptions(a, at=None):
     return out
 
 def derive(a, at=None):
+    at=at or now_utc()
     errors=validate(a)
     if errors: return "INDETERMINATE", ["invalid assessment: "+x for x in errors]
     inv=a["invariantResults"]
+    evidence_by_id={e.get("id"):e for e in a.get("evidence",[]) if isinstance(e,dict) and e.get("id")}
+    derived_stale=set()
+    for eid,e in evidence_by_id.items():
+        if e.get("invalidatedAt"): derived_stale.add(eid)
+        try:
+            expires=parse_time(e.get("validUntil"))
+            if expires and expires <= at: derived_stale.add(eid)
+        except ValueError:
+            return "INDETERMINATE", [f"invalid evidence time {eid}"]
+    for x in inv:
+        if x.get("state")=="Verified" and any(eid in derived_stale for eid in x.get("evidence",[])):
+            return "INDETERMINATE", [f"{x['id']} relies on stale or invalidated evidence"]
     unknown_effects=a.get("unknownSecurityEffects",[])
     violated=[x["id"] for x in inv if x["state"]=="Violated"]
     unknown=[x["id"] for x in inv if x["state"]=="Unknown"]
