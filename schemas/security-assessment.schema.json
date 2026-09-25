@@ -196,6 +196,97 @@
       "items": {
         "type": "string"
       }
+    },
+    "trustRootChange": {
+      "type": "object",
+      "required": [
+        "id",
+        "paths",
+        "rationale",
+        "changedBy",
+        "previousDigest",
+        "newDigest",
+        "approvals"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "changedBy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "previousDigest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "newDigest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "weakening": {
+          "type": "boolean"
+        },
+        "weakeningExplicitlyAuthorized": {
+          "type": "boolean"
+        },
+        "approvals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "approved",
+              "approverIdentity",
+              "role",
+              "evidence"
+            ],
+            "properties": {
+              "approved": {
+                "const": true
+              },
+              "approverIdentity": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "value"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "role": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false
