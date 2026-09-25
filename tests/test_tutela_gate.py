@@ -53,4 +53,20 @@ class GateTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertEqual(posture,derive(json.loads((root/name).read_text()),datetime(2026,9,25,tzinfo=timezone.utc))[0])
 
+    def test_evidence_bound_to_wrong_subject_is_indeterminate(self):
+        a=assessment(); a["evidence"]=[{"id":"SEC-EVD-001","producer":"ci","subjectRef":"wrong","observedAt":"2026-09-24T00:00:00Z"}]
+        self.assertEqual("INDETERMINATE",derive(a,datetime(2026,9,25,tzinfo=timezone.utc))[0])
+
+    def test_expired_evidence_makes_verified_invariant_indeterminate(self):
+        a=assessment(); a["evidence"]=[{"id":"SEC-EVD-001","producer":"ci","subjectRef":"abc123","observedAt":"2026-09-20T00:00:00Z","validUntil":"2026-09-24T00:00:00Z"}]
+        self.assertEqual("INDETERMINATE",derive(a,datetime(2026,9,25,tzinfo=timezone.utc))[0])
+
+    def test_invalidated_evidence_requires_reason(self):
+        a=assessment(); a["evidence"]=[{"id":"SEC-EVD-001","producer":"ci","subjectRef":"abc123","observedAt":"2026-09-20T00:00:00Z","invalidatedAt":"2026-09-24T00:00:00Z"}]
+        self.assertEqual("INDETERMINATE",derive(a,datetime(2026,9,25,tzinfo=timezone.utc))[0])
+
+    def test_invalidated_evidence_is_derived_stale(self):
+        a=assessment(); a["evidence"]=[{"id":"SEC-EVD-001","producer":"ci","subjectRef":"abc123","observedAt":"2026-09-20T00:00:00Z","invalidatedAt":"2026-09-24T00:00:00Z","invalidationReason":"authorization boundary changed"}]
+        self.assertEqual("INDETERMINATE",derive(a,datetime(2026,9,25,tzinfo=timezone.utc))[0])
+
 if __name__=="__main__": unittest.main()
