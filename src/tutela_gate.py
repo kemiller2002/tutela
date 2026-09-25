@@ -14,6 +14,28 @@ POSTURES={"PASS","CONDITIONAL","BLOCKED","INDETERMINATE"}
 SENSITIVE_KEYS={"secret","token","password","apiKey","api_key","authorization","credential","privateKey","private_key"}
 INV_STATES={"Verified","Violated","Unknown","Stale","NotApplicable"}
 DEFAULT_AUTHORITY_POLICY=Path(__file__).resolve().parents[1]/"security"/"PROVENANCE-AUTHORITY.json"
+DEFAULT_TRUST_ROOT_POLICY=Path(__file__).resolve().parents[1]/"security"/"TRUST-ROOT-CHANGE.json"
+
+def load_trust_root_policy(path=None):
+    return json.loads(Path(path or DEFAULT_TRUST_ROOT_POLICY).read_text())
+
+def validate_trust_root_change(change, trust_policy):
+    errors=[]
+    if not change: return errors
+    protected=set(trust_policy.get("protectedPaths",[]))
+    touched=set(change.get("paths",[]))
+    if not (protected & touched): return errors
+    for k in ("id","rationale","changedBy","previousDigest","newDigest"):
+        if not change.get(k): errors.append(f"trustRootChange.{k} is required")
+    if change.get("previousDigest")==change.get("newDigest") and change.get("previousDigest"):
+        errors.append("trustRootChange digests must describe an actual transition")
+    approvals=change.get("approvals") or []
+    independent=[x for x in approvals if isinstance(x,dict) and x.get("approved") is True and x.get("approverIdentity") and x.get("evidence") and x.get("approverIdentity",{}).get("value") != change.get("changedBy")]
+    if len(independent) < int(trust_policy.get("requirements",{}).get("approvalsMinimum",1)):
+        errors.append("protected trust-root change requires independent approval evidence")
+    if change.get("weakening") is True and change.get("weakeningExplicitlyAuthorized") is not True:
+        errors.append("trust-root weakening requires explicit authorization")
+    return errors
 
 def load_authority_policy(path=None):
     return json.loads(Path(path or DEFAULT_AUTHORITY_POLICY).read_text())
@@ -40,8 +62,10 @@ def contains_sensitive_value(value, key=None):
     if isinstance(value,list): return any(contains_sensitive_value(v) for v in value)
     return False
 
-def validate(a, authority_policy=None):
+def validate(a, authority_policy=None, trust_policy=None):
     errors=[]
+    trust_policy=trust_policy or load_trust_root_policy()
+    errors.extend(validate_trust_root_change(a.get("trustRootChange"),trust_policy))
     authority_policy=authority_policy or load_authority_policy()
     if authority_policy.get("default") != "deny": errors.append("provenance authority policy must default deny")
     if a.get("schemaVersion") != 1: errors.append("schemaVersion must be 1")
@@ -142,9 +166,9 @@ def valid_exceptions(a, at=None):
             pass
     return out
 
-def derive(a, at=None, authority_policy=None):
+def derive(a, at=None, authority_policy=None, trust_policy=None):
     at=at or now_utc()
-    errors=validate(a,authority_policy)
+    errors=validate(a,authority_policy,trust_policy)
     if errors: return "INDETERMINATE", ["invalid assessment: "+x for x in errors]
     inv=a["invariantResults"]
     evidence_by_id={e.get("id"):e for e in a.get("evidence",[]) if isinstance(e,dict) and e.get("id")}
