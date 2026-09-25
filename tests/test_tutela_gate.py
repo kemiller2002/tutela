@@ -1,4 +1,6 @@
 import unittest
+import json
+from pathlib import Path
 from datetime import datetime, timezone
 from src.tutela_gate import derive, validate
 
@@ -43,5 +45,12 @@ class GateTests(unittest.TestCase):
     def test_duplicate_threat_id_invalid(self):
         a=assessment(); a["threats"]=["SEC-THR-001","SEC-THR-001"]
         self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_adversarial_fixtures_fail_closed(self):
+        expected={"fabricated-evidence.json":"INDETERMINATE","missing-independent-review.json":"INDETERMINATE","contradictory-evidence.json":"INDETERMINATE","expired-exception.json":"BLOCKED"}
+        root=Path(__file__).parent/"fixtures"/"adversarial"
+        for name,posture in expected.items():
+            with self.subTest(name=name):
+                self.assertEqual(posture,derive(json.loads((root/name).read_text()),datetime(2026,9,25,tzinfo=timezone.utc))[0])
 
 if __name__=="__main__": unittest.main()
