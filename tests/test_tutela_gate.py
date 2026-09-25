@@ -75,4 +75,16 @@ class GateTests(unittest.TestCase):
         a["invariantResults"][0]["state"]="Unknown"
         self.assertEqual("INDETERMINATE",derive(a)[0])
 
+    def test_structured_evidence_requires_artifact_digest(self):
+        a=assessment(); a["evidence"]=[{"id":"SEC-EVD-001","producer":"ci","producerIdentity":{"type":"workflow","value":"verify"},"subjectRef":"abc123","observedAt":"2026-09-25T00:00:00Z","provenance":{"kind":"ci","issuer":"github","runRef":"run-1"}}]
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_structured_evidence_requires_provenance(self):
+        a=assessment(); a["evidence"]=[{"id":"SEC-EVD-001","producer":"ci","producerIdentity":{"type":"workflow","value":"verify"},"subjectRef":"abc123","observedAt":"2026-09-25T00:00:00Z","artifactDigest":{"algorithm":"sha256","value":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}}]
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_complete_structured_evidence_can_support_verified(self):
+        a=assessment(); a["evidence"]=[{"id":"SEC-EVD-001","producer":"ci","producerIdentity":{"type":"workflow","value":"verify"},"subjectRef":"abc123","observedAt":"2026-09-25T00:00:00Z","artifactDigest":{"algorithm":"sha256","value":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"},"provenance":{"kind":"ci","issuer":"github","runRef":"run-1"}}]
+        self.assertEqual("PASS",derive(a)[0])
+
 if __name__=="__main__": unittest.main()
