@@ -9,6 +9,16 @@ def assessment(state="Verified", evidence=None, unknown=None, exceptions=None):
       "invariantResults":[{"id":"SEC-INV-001","state":state,"evidence":evidence if evidence is not None else ["SEC-EVD-001"]}],
       "unknownSecurityEffects":unknown or [],"exceptions":exceptions or []}
 
+
+def role_registry(*memberships):
+    return {"schemaVersion":1,"id":"test-role-registry","version":"1","default":"deny","memberships":list(memberships)}
+
+def membership(identity_type,value,roles,valid_from=None,valid_until=None):
+    m={"identity":{"type":identity_type,"value":value},"roles":roles}
+    if valid_from: m["validFrom"]=valid_from
+    if valid_until: m["validUntil"]=valid_until
+    return m
+
 class GateTests(unittest.TestCase):
     def test_pass(self): self.assertEqual("PASS",derive(assessment())[0])
     def test_violation_blocks(self): self.assertEqual("BLOCKED",derive(assessment("Violated"))[0])
@@ -132,7 +142,7 @@ class GateTests(unittest.TestCase):
 
     def test_independently_approved_trust_root_change_is_valid(self):
         a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-3","rationale":"add constrained issuer","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-1"},"role":"security-reviewer","evidence":["E1"]}]}
-        self.assertEqual([],validate(a))
+        self.assertEqual([],validate(a,role_registry=role_registry(membership("human","reviewer-1",["security-reviewer"]))))
 
     def test_weakening_needs_explicit_authorization_even_with_review(self):
         a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-4","rationale":"broaden issuer","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","weakening":True,"approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-1"},"role":"security-reviewer","evidence":["E1"]}]}
@@ -152,6 +162,24 @@ class GateTests(unittest.TestCase):
 
     def test_security_owner_can_explicitly_authorize_weakening(self):
         a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-8","rationale":"approved constrained broadening","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","weakening":True,"weakeningExplicitlyAuthorized":True,"approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"owner-1"},"role":"security-owner","evidence":["E1"]}]}
-        self.assertEqual([],validate(a))
+        self.assertEqual([],validate(a,role_registry=role_registry(membership("human","owner-1",["security-owner"]))))
+
+    def test_claimed_role_without_registry_membership_fails_closed(self):
+        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-9","rationale":"change gate","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"intruder"},"role":"security-owner","evidence":["E1"]}]}
+        self.assertEqual("INDETERMINATE",derive(a,role_registry=role_registry())[0])
+
+    def test_expired_role_membership_fails_closed(self):
+        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-10","rationale":"change gate","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-1"},"role":"security-reviewer","evidence":["E1"]}]}
+        rr=role_registry(membership("human","reviewer-1",["security-reviewer"],valid_until="2026-09-24T00:00:00Z"))
+        self.assertEqual("INDETERMINATE",derive(a,at=datetime(2026,9,25,tzinfo=timezone.utc),role_registry=rr)[0])
+
+    def test_registry_membership_authorizes_matching_role_only(self):
+        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-11","rationale":"change gate","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-1"},"role":"security-reviewer","evidence":["E1"]}]}
+        rr=role_registry(membership("human","reviewer-1",["security-reviewer"]))
+        self.assertEqual([],validate(a,role_registry=rr))
+
+    def test_permissive_role_registry_fails_closed(self):
+        a=assessment()
+        self.assertEqual("INDETERMINATE",derive(a,role_registry={"default":"allow","memberships":[]})[0])
 
 if __name__=="__main__": unittest.main()
