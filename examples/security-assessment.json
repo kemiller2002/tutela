@@ -1,1 +1,66 @@
-{"schemaVersion":1,"subject":{"repository":"example/app","ref":"0123456789abcdef"},"posture":"BLOCKED","scope":["authentication","authorization","agent-tools"],"invariantResults":[{"id":"SEC-INV-001","state":"Verified","evidence":["SEC-EVD-001"]},{"id":"SEC-INV-002","state":"Unknown","evidence":[]}],"threats":["SEC-THR-001"],"findings":[],"evidence":["SEC-EVD-001"],"unknownSecurityEffects":["SEC-UNK-001"],"staleEvidence":[],"exceptions":[],"limitations":["Runtime infrastructure was not assessed."]}
+{
+  "schemaVersion": 1,
+  "subject": {
+    "repository": "example/app",
+    "ref": "0123456789abcdef"
+  },
+  "posture": "BLOCKED",
+  "scope": [
+    "authentication",
+    "authorization",
+    "agent-tools"
+  ],
+  "invariantResults": [
+    {
+      "id": "SEC-INV-001",
+      "state": "Verified",
+      "evidence": [
+        "SEC-EVD-001"
+      ]
+    },
+    {
+      "id": "SEC-INV-002",
+      "state": "Unknown",
+      "evidence": []
+    }
+  ],
+  "threats": [
+    "SEC-THR-001"
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "SEC-EVD-001",
+      "type": "Test",
+      "source": "example deterministic test",
+      "subjectRef": "0123456789abcdef",
+      "observedAt": "2026-09-25T00:00:00Z",
+      "producer": "example-ci",
+      "producerIdentity": {
+        "type": "workflow",
+        "value": "example/security"
+      },
+      "artifactDigest": {
+        "algorithm": "sha256",
+        "value": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      },
+      "provenance": {
+        "kind": "ci",
+        "issuer": "example",
+        "runRef": "example-run-1"
+      },
+      "redacted": true,
+      "limitations": [
+        "Example evidence only."
+      ]
+    }
+  ],
+  "unknownSecurityEffects": [
+    "SEC-UNK-001"
+  ],
+  "staleEvidence": [],
+  "exceptions": [],
+  "limitations": [
+    "Runtime infrastructure was not assessed."
+  ]
+}
