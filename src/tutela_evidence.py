@@ -20,7 +20,8 @@ def build(args):
       "provenance":{"kind":args.provenance_kind,"issuer":args.provenance_issuer,"runRef":args.run_ref,
                     **({"workflowRef":args.workflow_ref} if args.workflow_ref else {})},
       "method":f"{args.algorithm} digest of {Path(args.artifact).name}","redacted":True,
-      "limitations":["Digest proves byte identity of the named artifact, not the truth or completeness of its claims."]}
+      "limitations":["Digest proves byte identity of the named artifact, not the truth or completeness of its claims."],
+      "bundleDigest":({"algorithm":"sha256","value":args.bundle_digest.removeprefix("sha256:")} if args.bundle_digest else None)}
 
 def main():
     p=argparse.ArgumentParser()
@@ -28,7 +29,7 @@ def main():
     p.add_argument("--source",required=True); p.add_argument("--subject-ref",required=True); p.add_argument("--producer",required=True)
     p.add_argument("--producer-identity-type",required=True); p.add_argument("--producer-identity-value",required=True)
     p.add_argument("--provenance-kind",required=True); p.add_argument("--provenance-issuer",required=True); p.add_argument("--run-ref",required=True)
-    p.add_argument("--workflow-ref"); p.add_argument("--observed-at"); p.add_argument("--algorithm",choices=["sha256","sha512"],default="sha256")
+    p.add_argument("--workflow-ref"); p.add_argument("--bundle-digest"); p.add_argument("--observed-at"); p.add_argument("--algorithm",choices=["sha256","sha512"],default="sha256")
     p.add_argument("--output")
     args=p.parse_args(); payload=json.dumps(build(args),indent=2)+"\n"
     if args.output: Path(args.output).write_text(payload)
