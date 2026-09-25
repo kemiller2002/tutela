@@ -15,13 +15,32 @@ SENSITIVE_KEYS={"secret","token","password","apiKey","api_key","authorization","
 INV_STATES={"Verified","Violated","Unknown","Stale","NotApplicable"}
 DEFAULT_AUTHORITY_POLICY=Path(__file__).resolve().parents[1]/"security"/"PROVENANCE-AUTHORITY.json"
 DEFAULT_TRUST_ROOT_POLICY=Path(__file__).resolve().parents[1]/"security"/"TRUST-ROOT-CHANGE.json"
+DEFAULT_ROLE_REGISTRY=Path(__file__).resolve().parents[1]/"security"/"ROLE-REGISTRY.json"
+
+def load_role_registry(path=None):
+    return json.loads(Path(path or DEFAULT_ROLE_REGISTRY).read_text())
+
+def registered_roles(identity, registry, at=None):
+    at=at or now_utc(); roles=set()
+    if registry.get("default") != "deny": return roles
+    for m in registry.get("memberships",[]):
+        mi=m.get("identity") or {}
+        if mi.get("type") != identity.get("type") or mi.get("value") != identity.get("value"): continue
+        try:
+            vf=parse_time(m.get("validFrom")); vu=parse_time(m.get("validUntil"))
+            if vf and vf > at: continue
+            if vu and vu <= at: continue
+        except ValueError: continue
+        roles.update(m.get("roles",[]))
+    return roles
 
 def load_trust_root_policy(path=None):
     return json.loads(Path(path or DEFAULT_TRUST_ROOT_POLICY).read_text())
 
-def approval_authorized(approval, trust_policy, weakening=False):
+def approval_authorized(approval, trust_policy, role_registry, weakening=False, at=None):
     identity=approval.get("approverIdentity") or {}
     role=approval.get("role")
+    if role not in registered_roles(identity,role_registry,at): return False
     for rule in trust_policy.get("approvalAuthorities",[]):
         if (identity.get("type") in rule.get("identityTypes",[])
             and role in rule.get("roles",[])
@@ -30,7 +49,7 @@ def approval_authorized(approval, trust_policy, weakening=False):
             return True
     return False
 
-def validate_trust_root_change(change, trust_policy):
+def validate_trust_root_change(change, trust_policy, role_registry, at=None):
     errors=[]
     if not change: return errors
     protected=set(trust_policy.get("protectedPaths",[]))
@@ -41,13 +60,13 @@ def validate_trust_root_change(change, trust_policy):
     if change.get("previousDigest")==change.get("newDigest") and change.get("previousDigest"):
         errors.append("trustRootChange digests must describe an actual transition")
     approvals=change.get("approvals") or []
-    independent=[x for x in approvals if isinstance(x,dict) and x.get("approved") is True and x.get("approverIdentity") and x.get("evidence") and x.get("approverIdentity",{}).get("value") != change.get("changedBy") and approval_authorized(x,trust_policy,False)]
+    independent=[x for x in approvals if isinstance(x,dict) and x.get("approved") is True and x.get("approverIdentity") and x.get("evidence") and x.get("approverIdentity",{}).get("value") != change.get("changedBy") and approval_authorized(x,trust_policy,role_registry,False,at)]
     if len(independent) < int(trust_policy.get("requirements",{}).get("approvalsMinimum",1)):
         errors.append("protected trust-root change requires independent approval evidence")
     if change.get("weakening") is True:
         if change.get("weakeningExplicitlyAuthorized") is not True:
             errors.append("trust-root weakening requires explicit authorization")
-        weakening_approvals=[x for x in independent if approval_authorized(x,trust_policy,True)]
+        weakening_approvals=[x for x in independent if approval_authorized(x,trust_policy,role_registry,True,at)]
         if not weakening_approvals:
             errors.append("trust-root weakening requires an authorized security-owner approval")
     return errors
@@ -77,10 +96,12 @@ def contains_sensitive_value(value, key=None):
     if isinstance(value,list): return any(contains_sensitive_value(v) for v in value)
     return False
 
-def validate(a, authority_policy=None, trust_policy=None):
+def validate(a, authority_policy=None, trust_policy=None, role_registry=None, at=None):
     errors=[]
     trust_policy=trust_policy or load_trust_root_policy()
-    errors.extend(validate_trust_root_change(a.get("trustRootChange"),trust_policy))
+    role_registry=role_registry or load_role_registry()
+    if role_registry.get("default") != "deny": errors.append("security role registry must default deny")
+    errors.extend(validate_trust_root_change(a.get("trustRootChange"),trust_policy,role_registry,at))
     authority_policy=authority_policy or load_authority_policy()
     if authority_policy.get("default") != "deny": errors.append("provenance authority policy must default deny")
     if a.get("schemaVersion") != 1: errors.append("schemaVersion must be 1")
@@ -181,9 +202,9 @@ def valid_exceptions(a, at=None):
             pass
     return out
 
-def derive(a, at=None, authority_policy=None, trust_policy=None):
+def derive(a, at=None, authority_policy=None, trust_policy=None, role_registry=None):
     at=at or now_utc()
-    errors=validate(a,authority_policy,trust_policy)
+    errors=validate(a,authority_policy,trust_policy,role_registry,at)
     if errors: return "INDETERMINATE", ["invalid assessment: "+x for x in errors]
     inv=a["invariantResults"]
     evidence_by_id={e.get("id"):e for e in a.get("evidence",[]) if isinstance(e,dict) and e.get("id")}
