@@ -13,8 +13,11 @@ def assessment(state="Verified", evidence=None, unknown=None, exceptions=None):
 def role_registry(*memberships):
     return {"schemaVersion":1,"id":"test-role-registry","version":"1","default":"deny","memberships":list(memberships)}
 
+def bound_identity(kind,subject_id,login="test-user",provider="github",verified=True):
+    return {"kind":kind,"provider":provider,"subjectId":str(subject_id),"login":login,"bindingVerified":verified,"bindingEvidence":["ID-EVD-1"]}
+
 def membership(identity_type,value,roles,valid_from=None,valid_until=None):
-    m={"identity":{"type":identity_type,"value":value},"roles":roles}
+    m={"identity":bound_identity(identity_type,value),"roles":roles}
     if valid_from: m["validFrom"]=valid_from
     if valid_until: m["validUntil"]=valid_until
     return m
@@ -133,53 +136,72 @@ class GateTests(unittest.TestCase):
         self.assertEqual("INDETERMINATE",derive(a,authority_policy=permissive)[0])
 
     def test_unreviewed_trust_root_change_fails_closed(self):
-        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-1","rationale":"change issuer","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[]}
+        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-1","rationale":"change issuer","changedBy":"agent-a","changedByIdentity":bound_identity("agent","5001","agent-a"),"previousDigest":"aaa","newDigest":"bbb","approvals":[]}
         self.assertEqual("INDETERMINATE",derive(a)[0])
 
     def test_self_approval_does_not_satisfy_trust_root_change(self):
-        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-2","rationale":"change gate","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"agent","value":"agent-a"},"evidence":["E1"]}]}
+        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-2","rationale":"change gate","changedBy":"agent-a","changedByIdentity":bound_identity("agent","5001","agent-a"),"previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"agent","value":"agent-a"},"evidence":["E1"]}]}
         self.assertEqual("INDETERMINATE",derive(a)[0])
 
     def test_independently_approved_trust_root_change_is_valid(self):
-        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-3","rationale":"add constrained issuer","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-1"},"role":"security-reviewer","evidence":["E1"]}]}
-        self.assertEqual([],validate(a,role_registry=role_registry(membership("human","reviewer-1",["security-reviewer"]))))
+        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-3","rationale":"add constrained issuer","changedBy":"agent-a","changedByIdentity":bound_identity("agent","5001","agent-a"),"previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":bound_identity("human","1001","reviewer-1"),"role":"security-reviewer","evidence":["E1"]}]}
+        self.assertEqual([],validate(a,role_registry=role_registry(membership("human","1001",["security-reviewer"]))))
 
     def test_weakening_needs_explicit_authorization_even_with_review(self):
-        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-4","rationale":"broaden issuer","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","weakening":True,"approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-1"},"role":"security-reviewer","evidence":["E1"]}]}
+        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-4","rationale":"broaden issuer","changedBy":"agent-a","changedByIdentity":bound_identity("agent","5001","agent-a"),"previousDigest":"aaa","newDigest":"bbb","weakening":True,"approvals":[{"approved":True,"approverIdentity":bound_identity("human","1001","reviewer-1"),"role":"security-reviewer","evidence":["E1"]}]}
         self.assertEqual("INDETERMINATE",derive(a)[0])
 
     def test_unknown_approval_role_fails_closed(self):
-        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-5","rationale":"change gate","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-2"},"role":"developer","evidence":["E1"]}]}
+        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-5","rationale":"change gate","changedBy":"agent-a","changedByIdentity":bound_identity("agent","5001","agent-a"),"previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":bound_identity("human","1002","reviewer-2"),"role":"developer","evidence":["E1"]}]}
         self.assertEqual("INDETERMINATE",derive(a)[0])
 
     def test_role_spoof_by_wrong_identity_type_fails_closed(self):
-        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-6","rationale":"change gate","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"workflow","value":"ci"},"role":"security-reviewer","evidence":["E1"]}]}
+        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-6","rationale":"change gate","changedBy":"agent-a","changedByIdentity":bound_identity("agent","5001","agent-a"),"previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":bound_identity("workflow","3001","ci"),"role":"security-reviewer","evidence":["E1"]}]}
         self.assertEqual("INDETERMINATE",derive(a)[0])
 
     def test_security_reviewer_cannot_authorize_weakening(self):
-        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-7","rationale":"broaden trust","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","weakening":True,"weakeningExplicitlyAuthorized":True,"approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-1"},"role":"security-reviewer","evidence":["E1"]}]}
+        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-7","rationale":"broaden trust","changedBy":"agent-a","changedByIdentity":bound_identity("agent","5001","agent-a"),"previousDigest":"aaa","newDigest":"bbb","weakening":True,"weakeningExplicitlyAuthorized":True,"approvals":[{"approved":True,"approverIdentity":bound_identity("human","1001","reviewer-1"),"role":"security-reviewer","evidence":["E1"]}]}
         self.assertEqual("INDETERMINATE",derive(a)[0])
 
     def test_security_owner_can_explicitly_authorize_weakening(self):
-        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-8","rationale":"approved constrained broadening","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","weakening":True,"weakeningExplicitlyAuthorized":True,"approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"owner-1"},"role":"security-owner","evidence":["E1"]}]}
-        self.assertEqual([],validate(a,role_registry=role_registry(membership("human","owner-1",["security-owner"]))))
+        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-8","rationale":"approved constrained broadening","changedBy":"agent-a","changedByIdentity":bound_identity("agent","5001","agent-a"),"previousDigest":"aaa","newDigest":"bbb","weakening":True,"weakeningExplicitlyAuthorized":True,"approvals":[{"approved":True,"approverIdentity":bound_identity("human","2001","owner-1"),"role":"security-owner","evidence":["E1"]}]}
+        self.assertEqual([],validate(a,role_registry=role_registry(membership("human","2001",["security-owner"]))))
 
     def test_claimed_role_without_registry_membership_fails_closed(self):
-        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-9","rationale":"change gate","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"intruder"},"role":"security-owner","evidence":["E1"]}]}
+        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-9","rationale":"change gate","changedBy":"agent-a","changedByIdentity":bound_identity("agent","5001","agent-a"),"previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":bound_identity("human","9999","intruder"),"role":"security-owner","evidence":["E1"]}]}
         self.assertEqual("INDETERMINATE",derive(a,role_registry=role_registry())[0])
 
     def test_expired_role_membership_fails_closed(self):
-        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-10","rationale":"change gate","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-1"},"role":"security-reviewer","evidence":["E1"]}]}
-        rr=role_registry(membership("human","reviewer-1",["security-reviewer"],valid_until="2026-09-24T00:00:00Z"))
+        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-10","rationale":"change gate","changedBy":"agent-a","changedByIdentity":bound_identity("agent","5001","agent-a"),"previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":bound_identity("human","1001","reviewer-1"),"role":"security-reviewer","evidence":["E1"]}]}
+        rr=role_registry(membership("human","1001",["security-reviewer"],valid_until="2026-09-24T00:00:00Z"))
         self.assertEqual("INDETERMINATE",derive(a,at=datetime(2026,9,25,tzinfo=timezone.utc),role_registry=rr)[0])
 
     def test_registry_membership_authorizes_matching_role_only(self):
-        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-11","rationale":"change gate","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-1"},"role":"security-reviewer","evidence":["E1"]}]}
-        rr=role_registry(membership("human","reviewer-1",["security-reviewer"]))
+        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-11","rationale":"change gate","changedBy":"agent-a","changedByIdentity":bound_identity("agent","5001","agent-a"),"previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":bound_identity("human","1001","reviewer-1"),"role":"security-reviewer","evidence":["E1"]}]}
+        rr=role_registry(membership("human","1001",["security-reviewer"]))
         self.assertEqual([],validate(a,role_registry=rr))
 
     def test_permissive_role_registry_fails_closed(self):
         a=assessment()
         self.assertEqual("INDETERMINATE",derive(a,role_registry={"default":"allow","memberships":[]})[0])
+
+    def test_login_only_identity_cannot_acquire_role(self):
+        rr=role_registry({"identity":{"kind":"human","provider":"github","login":"owner"},"roles":["security-owner"]})
+        self.assertEqual(set(),registered_roles({"kind":"human","provider":"github","login":"owner","bindingVerified":True,"bindingEvidence":["E"]},rr))
+
+    def test_same_login_different_subject_id_does_not_match(self):
+        rr=role_registry(membership("human","2001",["security-owner"]))
+        attacker=bound_identity("human","9999","owner-1")
+        self.assertEqual(set(),registered_roles(attacker,rr))
+
+    def test_provider_mismatch_does_not_match_subject_id(self):
+        rr=role_registry(membership("human","2001",["security-owner"]))
+        other=bound_identity("human","2001","owner-1",provider="gitlab")
+        self.assertEqual(set(),registered_roles(other,rr))
+
+    def test_unverified_binding_has_no_roles(self):
+        rr=role_registry(membership("human","2001",["security-owner"]))
+        identity=bound_identity("human","2001","owner-1",verified=False)
+        self.assertEqual(set(),registered_roles(identity,rr))
 
 if __name__=="__main__": unittest.main()
