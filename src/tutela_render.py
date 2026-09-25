@@ -3,7 +3,10 @@
 from __future__ import annotations
 import html, json, sys
 from pathlib import Path
-from tutela_present import project
+try:
+    from .tutela_present import project
+except ImportError:
+    from tutela_present import project
 
 def esc(x): return html.escape(str(x if x is not None else ""))
 def render(a):
