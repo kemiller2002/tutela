@@ -78,6 +78,11 @@ def validate(a):
             identity=e.get("producerIdentity") or {}
             if isinstance(identity,dict) and identity and not (identity.get("type") and identity.get("value")):
                 errors.append(f"{eid}.producerIdentity requires type and value")
+            if e.get("artifactDigest") and subject.get("artifactHash"):
+                sd=subject.get("artifactHash")
+                normalized=(sd.get("value") if isinstance(sd,dict) else sd)
+                if normalized and e.get("artifactDigest",{}).get("value") != normalized:
+                    errors.append(f"{eid} artifact digest does not match subject artifactHash")
             if e.get("subjectRef") and e.get("subjectRef") != subject.get("ref"):
                 errors.append(f"{eid} is bound to a different subject ref")
             if e.get("invalidatedAt") and not e.get("invalidationReason"):
