@@ -42,5 +42,15 @@ jobs:
             --provenance-kind ci --provenance-issuer github-actions --run-ref "$RUN_REF" \
             --workflow-ref "$WORKFLOW_REF" --output /tmp/tutela-ci-evidence.json
           python -m json.tool /tmp/tutela-ci-evidence.json >/dev/null
+      - name: Persist provenance artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tutela-provenance-${{ github.sha }}
+          path: |
+            /tmp/tutela-ci-evidence.json
+            /tmp/tutela-self-view.json
+            /tmp/tutela-self-report.html
+          if-no-files-found: error
+          retention-days: 30
       - name: Verify example posture
         run: python src/tutela_gate.py examples/security-assessment.json --check-declared || [ $? -eq 1 ]
