@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 POSTURES={"PASS","CONDITIONAL","BLOCKED","INDETERMINATE"}
+SENSITIVE_KEYS={"secret","token","password","apiKey","api_key","authorization","credential","privateKey","private_key"}
 INV_STATES={"Verified","Violated","Unknown","Stale","NotApplicable"}
 
 def now_utc(): return datetime.now(timezone.utc)
@@ -19,9 +20,20 @@ def parse_time(value):
     if not value: return None
     return datetime.fromisoformat(value.replace("Z","+00:00"))
 
+def contains_sensitive_value(value, key=None):
+    if key and key.lower() in {x.lower() for x in SENSITIVE_KEYS}: return True
+    if isinstance(value,dict): return any(contains_sensitive_value(v,k) for k,v in value.items())
+    if isinstance(value,list): return any(contains_sensitive_value(v) for v in value)
+    return False
+
 def validate(a):
     errors=[]
     if a.get("schemaVersion") != 1: errors.append("schemaVersion must be 1")
+    policy=a.get("policy") or {}
+    if policy:
+        if not policy.get("id") or not policy.get("version"): errors.append("policy.id and policy.version are required when policy is supplied")
+        if policy.get("allowGateWeakening") is True: errors.append("assessment cannot authorize gate weakening")
+    if contains_sensitive_value(a.get("evidence",[])): errors.append("evidence contains a sensitive field")
     subject=a.get("subject") or {}
     if not subject.get("repository"): errors.append("subject.repository is required")
     if not subject.get("ref"): errors.append("subject.ref is required")
@@ -55,8 +67,11 @@ def validate(a):
         known=set(evidence_ids)
         for e in evidence_objects:
             eid=e.get("id") or "evidence"
-            for k in ("id","producer","subjectRef","observedAt"):
+            for k in ("id","producer","producerIdentity","subjectRef","observedAt"):
                 if not e.get(k): errors.append(f"{eid}.{k} is required")
+            identity=e.get("producerIdentity") or {}
+            if isinstance(identity,dict) and identity and not (identity.get("type") and identity.get("value")):
+                errors.append(f"{eid}.producerIdentity requires type and value")
             if e.get("subjectRef") and e.get("subjectRef") != subject.get("ref"):
                 errors.append(f"{eid} is bound to a different subject ref")
             if e.get("invalidatedAt") and not e.get("invalidationReason"):
