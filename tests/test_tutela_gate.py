@@ -87,4 +87,11 @@ class GateTests(unittest.TestCase):
         a=assessment(); a["evidence"]=[{"id":"SEC-EVD-001","producer":"ci","producerIdentity":{"type":"workflow","value":"verify"},"subjectRef":"abc123","observedAt":"2026-09-25T00:00:00Z","artifactDigest":{"algorithm":"sha256","value":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"},"provenance":{"kind":"ci","issuer":"github","runRef":"run-1"}}]
         self.assertEqual("PASS",derive(a)[0])
 
+    def test_evidence_digest_must_match_declared_subject_artifact_hash(self):
+        a=assessment(); a["subject"]["artifactHash"]={"algorithm":"sha256","value":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+        a["evidence"]=[{"id":"SEC-EVD-001","producer":"ci","producerIdentity":{"type":"workflow","value":"verify"},"subjectRef":"abc123","observedAt":"2026-09-25T00:00:00Z",
+          "artifactDigest":{"algorithm":"sha256","value":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+          "provenance":{"kind":"ci","issuer":"github","runRef":"run-1"}}]
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
 if __name__=="__main__": unittest.main()
