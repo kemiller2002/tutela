@@ -55,7 +55,14 @@ def validate(a):
                 errors.append(f"{iid or p} cannot be Verified with contradictory evidence")
             if x.get("state")=="Verified" and x.get("requiresIndependentVerification") is True:
                 attestations=x.get("verifierAttestations") or []
-                independent=[v for v in attestations if isinstance(v,dict) and v.get("independent") is True and v.get("verifier") and v.get("evidence")]
+                independent=[v for v in attestations if isinstance(v,dict) and v.get("independent") is True and v.get("verifier") and v.get("evidence")
+                    and v.get("verifierIdentity") and v.get("separationBasis")]
+                for v in independent:
+                    vi=v.get("verifierIdentity") or {}
+                    if not (isinstance(vi,dict) and vi.get("type") and vi.get("value")):
+                        errors.append(f"{iid or p} independent verifier identity is incomplete")
+                    if v.get("verifier")==x.get("implementedBy") or vi.get("value")==x.get("implementedBy"):
+                        errors.append(f"{iid or p} verifier is not independent of implementer")
                 if not independent:
                     errors.append(f"{iid or p} requires an independent verifier attestation")
     evidence_items=a.get("evidence",[])
