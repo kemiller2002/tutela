@@ -17,6 +17,7 @@ jobs:
           test -f security/SECURITY-PROFILE.md
           test -f security/PROVENANCE-AUTHORITY.json
           test -f security/TRUST-ROOT-CHANGE.json
+          test -f security/ROLE-REGISTRY.json
           test -f schemas/security-invariant.schema.json
           test -f schemas/threat.schema.json
           test -f schemas/evidence.schema.json
@@ -26,6 +27,7 @@ jobs:
           python -m json.tool .echelon/tutela.json >/dev/null
           python -m json.tool security/PROVENANCE-AUTHORITY.json >/dev/null
           python -m json.tool security/TRUST-ROOT-CHANGE.json >/dev/null
+          python -m json.tool security/ROLE-REGISTRY.json >/dev/null
           for f in schemas/*.json examples/*.json assessments/*.json tests/fixtures/adversarial/*.json; do python -m json.tool "$f" >/dev/null; done
       - name: Test deterministic gate
         run: python -m unittest discover -s tests -v
