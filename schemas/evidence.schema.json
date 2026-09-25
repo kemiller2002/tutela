@@ -141,6 +141,29 @@
       "items": {
         "type": "string"
       }
+    },
+    "bundleDigest": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "algorithm",
+        "value"
+      ],
+      "properties": {
+        "algorithm": {
+          "enum": [
+            "sha256",
+            "sha512"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "minLength": 64
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false
