@@ -22,8 +22,10 @@ jobs:
           test -f schemas/exception.schema.json
           test -f docs/RESULTS-UI.md
           python -m json.tool .echelon/tutela.json >/dev/null
-          for f in schemas/*.json examples/*.json; do python -m json.tool "$f" >/dev/null; done
+          for f in schemas/*.json examples/*.json assessments/*.json tests/fixtures/adversarial/*.json; do python -m json.tool "$f" >/dev/null; done
       - name: Test deterministic gate
         run: python -m unittest discover -s tests -v
+      - name: Project self-assessment presentation model
+        run: PYTHONPATH=src python src/tutela_present.py assessments/TUTELA-SELF-2026-0001.json > /tmp/tutela-self-view.json
       - name: Verify example posture
         run: python src/tutela_gate.py examples/security-assessment.json --check-declared || [ $? -eq 1 ]
