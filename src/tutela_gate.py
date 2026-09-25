@@ -70,7 +70,7 @@ def validate(a):
             for k in ("id","producer","producerIdentity","subjectRef","observedAt","artifactDigest","provenance"):
                 if not e.get(k): errors.append(f"{eid}.{k} is required")
             digest=e.get("artifactDigest") or {}
-            if isinstance(digest,dict) and digest and not (digest.get("algorithm") in {"sha256","sha512"} and digest.get("value")):
+            if isinstance(digest,dict) and digest and not (digest.get("algorithm") in {"sha256","sha512"} and digest.get("value") and len(digest.get("value","")) >= 64 and all(ch in "0123456789abcdefABCDEF" for ch in digest.get("value",""))):
                 errors.append(f"{eid}.artifactDigest requires sha256/sha512 algorithm and value")
             provenance=e.get("provenance") or {}
             if isinstance(provenance,dict) and provenance and not (provenance.get("kind") and provenance.get("issuer") and provenance.get("runRef")):
