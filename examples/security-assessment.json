@@ -46,7 +46,7 @@
       },
       "provenance": {
         "kind": "ci",
-        "issuer": "example",
+        "issuer": "github-actions",
         "runRef": "example-run-1"
       },
       "redacted": true,
