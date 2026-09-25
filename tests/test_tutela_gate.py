@@ -35,7 +35,7 @@ class GateTests(unittest.TestCase):
 
     def test_independent_verifier_attestation_satisfies_requirement(self):
         a=assessment(); i=a["invariantResults"][0]; i["requiresIndependentVerification"]=True
-        i["verifierAttestations"]=[{"verifier":"review-agent","independent":True,"evidence":["SEC-EVD-002"]}]
+        i["verifierAttestations"]=[{"verifier":"review-agent","independent":True,"verifierIdentity":{"type":"agent","value":"review-agent"},"separationBasis":"different verifier identity and execution context","evidence":["SEC-EVD-002"]}]
         self.assertEqual("PASS",derive(a)[0])
 
     def test_declared_evidence_reference_must_exist(self):
