@@ -63,6 +63,8 @@ def validate(a):
     else:
         evidence_objects=[e for e in evidence_items if isinstance(e,dict)]
         evidence_ids=[e.get("id") if isinstance(e,dict) else e for e in evidence_items]
+        if any(not isinstance(e,dict) for e in evidence_items):
+            errors.append("evidence entries must be structured objects; bare evidence references are not sufficient")
         if len(evidence_ids) != len(set(evidence_ids)): errors.append("duplicate evidence id")
         known=set(evidence_ids)
         for e in evidence_objects:
