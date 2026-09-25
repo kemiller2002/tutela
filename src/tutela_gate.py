@@ -67,8 +67,14 @@ def validate(a):
         known=set(evidence_ids)
         for e in evidence_objects:
             eid=e.get("id") or "evidence"
-            for k in ("id","producer","producerIdentity","subjectRef","observedAt"):
+            for k in ("id","producer","producerIdentity","subjectRef","observedAt","artifactDigest","provenance"):
                 if not e.get(k): errors.append(f"{eid}.{k} is required")
+            digest=e.get("artifactDigest") or {}
+            if isinstance(digest,dict) and digest and not (digest.get("algorithm") in {"sha256","sha512"} and digest.get("value")):
+                errors.append(f"{eid}.artifactDigest requires sha256/sha512 algorithm and value")
+            provenance=e.get("provenance") or {}
+            if isinstance(provenance,dict) and provenance and not (provenance.get("kind") and provenance.get("issuer") and provenance.get("runRef")):
+                errors.append(f"{eid}.provenance requires kind, issuer and runRef")
             identity=e.get("producerIdentity") or {}
             if isinstance(identity,dict) and identity and not (identity.get("type") and identity.get("value")):
                 errors.append(f"{eid}.producerIdentity requires type and value")
