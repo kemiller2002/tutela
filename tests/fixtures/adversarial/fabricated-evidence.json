@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "subject": {
+    "repository": "x/y",
+    "ref": "abc"
+  },
+  "posture": "PASS",
+  "evidence": [
+    "SEC-EVD-REAL"
+  ],
+  "invariantResults": [
+    {
+      "id": "SEC-INV-001",
+      "state": "Verified",
+      "evidence": [
+        "SEC-EVD-FABRICATED"
+      ]
+    }
+  ],
+  "unknownSecurityEffects": [],
+  "exceptions": []
+}
