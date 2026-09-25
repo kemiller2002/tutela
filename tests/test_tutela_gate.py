@@ -76,7 +76,7 @@ class GateTests(unittest.TestCase):
         self.assertEqual("INDETERMINATE",derive(a)[0])
 
     def test_structured_evidence_requires_artifact_digest(self):
-        a=assessment(); a["evidence"]=[{"id":"SEC-EVD-001","producer":"ci","producerIdentity":{"type":"workflow","value":"verify"},"subjectRef":"abc123","observedAt":"2026-09-25T00:00:00Z","provenance":{"kind":"ci","issuer":"github","runRef":"run-1"}}]
+        a=assessment(); a["evidence"]=[{"id":"SEC-EVD-001","producer":"ci","producerIdentity":{"type":"workflow","value":"verify"},"subjectRef":"abc123","observedAt":"2026-09-25T00:00:00Z","provenance":{"kind":"ci","issuer":"github-actions","runRef":"run-1"}}]
         self.assertEqual("INDETERMINATE",derive(a)[0])
 
     def test_structured_evidence_requires_provenance(self):
@@ -108,5 +108,18 @@ class GateTests(unittest.TestCase):
         a=assessment(); x=a["invariantResults"][0]; x["implementedBy"]="agent-a"; x["requiresIndependentVerification"]=True
         x["verifierAttestations"]=[{"verifier":"agent-a","independent":True,"verifierIdentity":{"type":"agent","value":"agent-a"},"separationBasis":"claimed separate pass","evidence":["SEC-EVD-002"]}]
         self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_spoofed_provenance_issuer_fails_closed(self):
+        a=assessment(); a["evidence"]=[{"id":"SEC-EVD-001","type":"Test","producer":"ci","producerIdentity":{"type":"workflow","value":"verify"},"subjectRef":"abc123","observedAt":"2026-09-25T00:00:00Z","artifactDigest":{"algorithm":"sha256","value":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"},"provenance":{"kind":"ci","issuer":"evil-ci","runRef":"run-1"}}]
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_authorized_issuer_cannot_escalate_to_manual_review(self):
+        a=assessment(); a["evidence"]=[{"id":"SEC-EVD-001","type":"ManualReview","producer":"ci","producerIdentity":{"type":"workflow","value":"verify"},"subjectRef":"abc123","observedAt":"2026-09-25T00:00:00Z","artifactDigest":{"algorithm":"sha256","value":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"},"provenance":{"kind":"ci","issuer":"github-actions","runRef":"run-1"}}]
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_authority_policy_must_default_deny(self):
+        a=assessment()
+        permissive={"default":"allow","authorities":[]}
+        self.assertEqual("INDETERMINATE",derive(a,authority_policy=permissive)[0])
 
 if __name__=="__main__": unittest.main()
