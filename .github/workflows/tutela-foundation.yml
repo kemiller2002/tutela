@@ -42,12 +42,15 @@ jobs:
             --provenance-kind ci --provenance-issuer github-actions --run-ref "$RUN_REF" \
             --workflow-ref "$WORKFLOW_REF" --output /tmp/tutela-ci-evidence.json
           python -m json.tool /tmp/tutela-ci-evidence.json >/dev/null
+          mkdir -p evidence/runs
+          cp /tmp/tutela-ci-evidence.json evidence/runs/current-ci-evidence.json
       - name: Persist provenance artifacts
         uses: actions/upload-artifact@v4
         with:
           name: tutela-provenance-${{ github.sha }}
           path: |
             /tmp/tutela-ci-evidence.json
+            evidence/runs/current-ci-evidence.json
             /tmp/tutela-self-view.json
             /tmp/tutela-self-report.html
           if-no-files-found: error
