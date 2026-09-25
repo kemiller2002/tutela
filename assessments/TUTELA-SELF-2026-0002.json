@@ -20,55 +20,33 @@
     "SEC-THR-003",
     "SEC-THR-005"
   ],
-  "evidence": [
-    "SEC-EVD-SELF2-CI",
-    "SEC-EVD-SELF2-SOURCE"
-  ],
+  "evidence": [],
   "invariantResults": [
     {
       "id": "SEC-INV-001",
-      "state": "Verified",
-      "evidence": [
-        "SEC-EVD-SELF2-CI"
-      ],
-      "requiresIndependentVerification": true,
-      "verifierAttestations": [
-        {
-          "verifier": "GitHub Actions / tutela-foundation",
-          "independent": true,
-          "evidence": [
-            "SEC-EVD-SELF2-CI"
-          ]
-        }
-      ]
+      "state": "Unknown",
+      "evidence": [],
+      "requiresIndependentVerification": true
     },
     {
       "id": "SEC-INV-002",
-      "state": "Verified",
-      "evidence": [
-        "SEC-EVD-SELF2-CI"
-      ]
+      "state": "Unknown",
+      "evidence": []
     },
     {
       "id": "SEC-INV-003",
       "state": "Unknown",
-      "evidence": [
-        "SEC-EVD-SELF2-SOURCE"
-      ]
+      "evidence": []
     },
     {
       "id": "SEC-INV-004",
-      "state": "Verified",
-      "evidence": [
-        "SEC-EVD-SELF2-CI"
-      ]
+      "state": "Unknown",
+      "evidence": []
     },
     {
       "id": "SEC-INV-005",
-      "state": "Verified",
-      "evidence": [
-        "SEC-EVD-SELF2-CI"
-      ]
+      "state": "Unknown",
+      "evidence": []
     }
   ],
   "unknownSecurityEffects": [],
@@ -76,6 +54,7 @@
   "limitations": [
     "The successful CI run proves execution of committed tests and pipeline behavior, not independence of the test design.",
     "SEC-INV-003 remains Unknown until evidence producer identity and artifact digest are captured as first-class structured evidence for the assessed immutable subject, rather than reconstructed after the run.",
-    "GitHub Actions is an external execution environment but is not treated as an independent security design reviewer."
+    "GitHub Actions is an external execution environment but is not treated as an independent security design reviewer.",
+    "CI run 36094272224 is known green, but its evidence was not emitted by the assessed run in the current structured evidence format. It is not promoted retroactively."
   ]
 }
