@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "tutela-trust-root-change",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "protectedPaths": [
     "security/PROVENANCE-AUTHORITY.json",
     "security/TRUST-ROOT-CHANGE.json",
@@ -18,6 +18,37 @@
     "evidenceRequired": true,
     "previousDigestRequired": true,
     "newDigestRequired": true,
-    "weakeningRequiresExplicitFlag": true
-  }
+    "weakeningRequiresExplicitFlag": true,
+    "approverAuthorityRequired": true,
+    "weakeningAuthorityRequired": true
+  },
+  "approvalAuthorities": [
+    {
+      "id": "security-reviewer",
+      "identityTypes": [
+        "human",
+        "agent"
+      ],
+      "roles": [
+        "security-reviewer"
+      ],
+      "mayApprove": [
+        "trust-root-change"
+      ],
+      "mayAuthorizeWeakening": false
+    },
+    {
+      "id": "security-owner",
+      "identityTypes": [
+        "human"
+      ],
+      "roles": [
+        "security-owner"
+      ],
+      "mayApprove": [
+        "trust-root-change"
+      ],
+      "mayAuthorizeWeakening": true
+    }
+  ]
 }
