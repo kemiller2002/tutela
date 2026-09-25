@@ -19,9 +19,79 @@
     "SEC-THR-005"
   ],
   "evidence": [
-    "SEC-EVD-SELF-001",
-    "SEC-EVD-SELF-002",
-    "SEC-EVD-SELF-003"
+    {
+      "id": "SEC-EVD-SELF-001",
+      "type": "Test",
+      "source": "Tutela gate tests at subject commit",
+      "subjectRef": "5d672c6218a99c8decf44d4ba314b336e415a3f3",
+      "observedAt": "2026-09-24T21:12:03Z",
+      "producer": "Tutela repository",
+      "producerIdentity": {
+        "type": "git-repository",
+        "value": "kemiller2002/tutela"
+      },
+      "artifactDigest": {
+        "algorithm": "sha256",
+        "value": "unknown-pending-reproducible-artifact-digest"
+      },
+      "provenance": {
+        "kind": "source",
+        "issuer": "github",
+        "runRef": "5d672c6218a99c8decf44d4ba314b336e415a3f3"
+      },
+      "limitations": [
+        "Digest value is not yet independently established and therefore does not close SEC-INV-003."
+      ]
+    },
+    {
+      "id": "SEC-EVD-SELF-002",
+      "type": "Test",
+      "source": "GitHub Actions Tutela Foundation run 36059920150",
+      "subjectRef": "5d672c6218a99c8decf44d4ba314b336e415a3f3",
+      "observedAt": "2026-09-24T21:12:03Z",
+      "producer": "GitHub Actions",
+      "producerIdentity": {
+        "type": "workflow",
+        "value": "tutela-foundation"
+      },
+      "artifactDigest": {
+        "algorithm": "sha256",
+        "value": "unknown-pending-run-artifact-digest"
+      },
+      "provenance": {
+        "kind": "ci",
+        "issuer": "github-actions",
+        "runRef": "36059920150"
+      },
+      "independentOfImplementation": true,
+      "limitations": [
+        "Independent execution evidence, not an independent design review."
+      ]
+    },
+    {
+      "id": "SEC-EVD-SELF-003",
+      "type": "ManualReview",
+      "source": "Security evidence handling review",
+      "subjectRef": "5d672c6218a99c8decf44d4ba314b336e415a3f3",
+      "observedAt": "2026-09-24T21:12:03Z",
+      "producer": "Tutela dogfood assessment",
+      "producerIdentity": {
+        "type": "assessment",
+        "value": "TUTELA-SELF-2026-0001"
+      },
+      "artifactDigest": {
+        "algorithm": "sha256",
+        "value": "unknown-pending-review-artifact-digest"
+      },
+      "provenance": {
+        "kind": "assessment",
+        "issuer": "tutela",
+        "runRef": "TUTELA-SELF-2026-0001"
+      },
+      "limitations": [
+        "Broader data-flow leakage remains outside this assessment scope."
+      ]
+    }
   ],
   "invariantResults": [
     {
