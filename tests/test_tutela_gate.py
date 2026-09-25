@@ -84,7 +84,7 @@ class GateTests(unittest.TestCase):
         self.assertEqual("INDETERMINATE",derive(a)[0])
 
     def test_complete_structured_evidence_can_support_verified(self):
-        a=assessment(); a["evidence"]=[{"id":"SEC-EVD-001","producer":"ci","producerIdentity":{"type":"workflow","value":"verify"},"subjectRef":"abc123","observedAt":"2026-09-25T00:00:00Z","artifactDigest":{"algorithm":"sha256","value":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"},"provenance":{"kind":"ci","issuer":"github","runRef":"run-1"}}]
+        a=assessment(); a["evidence"]=[{"id":"SEC-EVD-001","type":"Test","producer":"ci","producerIdentity":{"type":"workflow","value":"verify"},"subjectRef":"abc123","observedAt":"2026-09-25T00:00:00Z","artifactDigest":{"algorithm":"sha256","value":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"},"provenance":{"kind":"ci","issuer":"github-actions","runRef":"run-1"}}]
         self.assertEqual("PASS",derive(a)[0])
 
     def test_evidence_digest_must_match_declared_subject_artifact_hash(self):
