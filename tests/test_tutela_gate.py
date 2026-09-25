@@ -95,7 +95,7 @@ class GateTests(unittest.TestCase):
         self.assertEqual("INDETERMINATE",derive(a)[0])
 
     def test_bare_evidence_reference_is_not_sufficient_provenance(self):
-        a=assessment()
+        a=assessment(); a["evidence"]=["SEC-EVD-001"]
         self.assertTrue(all(isinstance(x,str) for x in a["evidence"]))
         self.assertEqual("INDETERMINATE",derive(a)[0])
 
