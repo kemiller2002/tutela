@@ -130,3 +130,17 @@ TUT-1601 Policy changes MUST be auditable.
 TUT-1602 Gate weakening MUST require authorization and be surfaced as security-significant.
 TUT-1603 Evidence/decisions MUST remain traceable; destructive history rewriting MUST NOT be required.
 TUT-1604 Machine schemas MUST be versioned with migration policy.
+
+## Shared Echelon application foundations
+
+TUT-1701 Tutela runtime/tooling that owns a .NET/F# operational boundary MUST use Aegis for unexpected external failure. Expected security findings, violated invariants, unknown security effects, denied capabilities, and release-gate outcomes MUST remain Tutela/Ordo domain states and MUST NOT be converted into Aegis faults.
+
+TUT-1702 Aegis MAY provide security-relevant observations/evidence to Tutela with provenance, but Aegis MUST NOT become the authority that decides security posture. Tutela remains the security authority.
+
+TUT-1703 Interactive Tutela results UI MUST consume a pinned Forma release and existing Forma patterns/components before local equivalents. Accessibility, keyboard, mobile, non-color-state, and responsive contracts MUST be preserved.
+
+TUT-1704 Printable/PDF/paginated Security Evidence Records, posture reports, findings reports, exception records, or other security documents MUST consume a pinned Folio release and use existing Folio primitives before local print implementations.
+
+TUT-1705 Forma owns interactive presentation; Folio owns reusable document/print intent; Aegis owns unexpected operational-fault capture; Tutela owns security meaning, evidence interpretation, invariants, findings, exceptions, and posture.
+
+TUT-1706 Shared dependencies MUST be pinned to released versions or immutable artifacts. A shared capability gap MUST be recorded in the owning shared repository rather than silently forked inside Tutela.
