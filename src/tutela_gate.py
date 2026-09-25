@@ -13,6 +13,20 @@ from pathlib import Path
 POSTURES={"PASS","CONDITIONAL","BLOCKED","INDETERMINATE"}
 SENSITIVE_KEYS={"secret","token","password","apiKey","api_key","authorization","credential","privateKey","private_key"}
 INV_STATES={"Verified","Violated","Unknown","Stale","NotApplicable"}
+DEFAULT_AUTHORITY_POLICY=Path(__file__).resolve().parents[1]/"security"/"PROVENANCE-AUTHORITY.json"
+
+def load_authority_policy(path=None):
+    return json.loads(Path(path or DEFAULT_AUTHORITY_POLICY).read_text())
+
+def evidence_authorized(e, authority_policy):
+    identity=e.get("producerIdentity") or {}; provenance=e.get("provenance") or {}
+    for rule in authority_policy.get("authorities",[]):
+        if (e.get("type") in rule.get("evidenceTypes",[])
+            and provenance.get("kind") in rule.get("provenanceKinds",[])
+            and provenance.get("issuer") in rule.get("issuers",[])
+            and identity.get("type") in rule.get("producerIdentityTypes",[])):
+            return True, rule.get("id")
+    return False, None
 
 def now_utc(): return datetime.now(timezone.utc)
 
@@ -26,8 +40,10 @@ def contains_sensitive_value(value, key=None):
     if isinstance(value,list): return any(contains_sensitive_value(v) for v in value)
     return False
 
-def validate(a):
+def validate(a, authority_policy=None):
     errors=[]
+    authority_policy=authority_policy or load_authority_policy()
+    if authority_policy.get("default") != "deny": errors.append("provenance authority policy must default deny")
     if a.get("schemaVersion") != 1: errors.append("schemaVersion must be 1")
     policy=a.get("policy") or {}
     if policy:
@@ -85,6 +101,9 @@ def validate(a):
             if isinstance(provenance,dict) and provenance and not (provenance.get("kind") and provenance.get("issuer") and provenance.get("runRef")):
                 errors.append(f"{eid}.provenance requires kind, issuer and runRef")
             identity=e.get("producerIdentity") or {}
+            authorized, authority_id=evidence_authorized(e,authority_policy)
+            if not authorized:
+                errors.append(f"{eid} provenance issuer is not authorized for evidence type and producer identity")
             if isinstance(identity,dict) and identity and not (identity.get("type") and identity.get("value")):
                 errors.append(f"{eid}.producerIdentity requires type and value")
             if e.get("artifactDigest") and subject.get("artifactHash"):
@@ -123,9 +142,9 @@ def valid_exceptions(a, at=None):
             pass
     return out
 
-def derive(a, at=None):
+def derive(a, at=None, authority_policy=None):
     at=at or now_utc()
-    errors=validate(a)
+    errors=validate(a,authority_policy)
     if errors: return "INDETERMINATE", ["invalid assessment: "+x for x in errors]
     inv=a["invariantResults"]
     evidence_by_id={e.get("id"):e for e in a.get("evidence",[]) if isinstance(e,dict) and e.get("id")}
