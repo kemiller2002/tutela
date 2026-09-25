@@ -122,4 +122,20 @@ class GateTests(unittest.TestCase):
         permissive={"default":"allow","authorities":[]}
         self.assertEqual("INDETERMINATE",derive(a,authority_policy=permissive)[0])
 
+    def test_unreviewed_trust_root_change_fails_closed(self):
+        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-1","rationale":"change issuer","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[]}
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_self_approval_does_not_satisfy_trust_root_change(self):
+        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-2","rationale":"change gate","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"agent","value":"agent-a"},"evidence":["E1"]}]}
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_independently_approved_trust_root_change_is_valid(self):
+        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-3","rationale":"add constrained issuer","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-1"},"evidence":["E1"]}]}
+        self.assertEqual([],validate(a))
+
+    def test_weakening_needs_explicit_authorization_even_with_review(self):
+        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-4","rationale":"broaden issuer","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","weakening":True,"approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-1"},"evidence":["E1"]}]}
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
 if __name__=="__main__": unittest.main()
