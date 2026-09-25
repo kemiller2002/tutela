@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "assessmentId": "TUTELA-SELF-2026-0001",
+  "subject": {
+    "repository": "kemiller2002/tutela",
+    "ref": "5d672c6218a99c8decf44d4ba314b336e415a3f3"
+  },
+  "posture": "INDETERMINATE",
+  "scope": [
+    "posture derivation",
+    "assessment semantic validation",
+    "independent-verification enforcement",
+    "CI fixture validation"
+  ],
+  "threats": [
+    "SEC-THR-001",
+    "SEC-THR-002",
+    "SEC-THR-003",
+    "SEC-THR-005"
+  ],
+  "evidence": [
+    "SEC-EVD-SELF-001",
+    "SEC-EVD-SELF-002",
+    "SEC-EVD-SELF-003"
+  ],
+  "invariantResults": [
+    {
+      "id": "SEC-INV-001",
+      "state": "Verified",
+      "evidence": [
+        "SEC-EVD-SELF-001"
+      ],
+      "requiresIndependentVerification": true,
+      "verifierAttestations": [
+        {
+          "verifier": "GitHub Actions / tutela-foundation",
+          "independent": true,
+          "evidence": [
+            "SEC-EVD-SELF-002"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SEC-INV-002",
+      "state": "Verified",
+      "evidence": [
+        "SEC-EVD-SELF-001"
+      ]
+    },
+    {
+      "id": "SEC-INV-003",
+      "state": "Unknown",
+      "evidence": []
+    },
+    {
+      "id": "SEC-INV-004",
+      "state": "Verified",
+      "evidence": [
+        "SEC-EVD-SELF-003"
+      ]
+    },
+    {
+      "id": "SEC-INV-005",
+      "state": "Verified",
+      "evidence": [
+        "SEC-EVD-SELF-001"
+      ]
+    }
+  ],
+  "unknownSecurityEffects": [],
+  "exceptions": [],
+  "limitations": [
+    "This first dogfood assessment evaluates Tutela gate semantics and repository evidence handling, not every security property of GitHub, Python, or the runner environment.",
+    "The subject commit predates this assessment artifact; the assessment is intentionally external evidence about that immutable subject."
+  ]
+}
