@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "subject": {
+    "repository": "x/y",
+    "ref": "abc"
+  },
+  "policy": {
+    "id": "tutela-default",
+    "version": "1",
+    "allowGateWeakening": true
+  },
+  "posture": "PASS",
+  "invariantResults": [
+    {
+      "id": "SEC-INV-001",
+      "state": "Verified",
+      "evidence": [
+        "E1"
+      ]
+    }
+  ],
+  "unknownSecurityEffects": [],
+  "exceptions": []
+}
