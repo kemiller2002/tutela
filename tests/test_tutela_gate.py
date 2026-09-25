@@ -131,11 +131,27 @@ class GateTests(unittest.TestCase):
         self.assertEqual("INDETERMINATE",derive(a)[0])
 
     def test_independently_approved_trust_root_change_is_valid(self):
-        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-3","rationale":"add constrained issuer","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-1"},"evidence":["E1"]}]}
+        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-3","rationale":"add constrained issuer","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-1"},"role":"security-reviewer","evidence":["E1"]}]}
         self.assertEqual([],validate(a))
 
     def test_weakening_needs_explicit_authorization_even_with_review(self):
-        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-4","rationale":"broaden issuer","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","weakening":True,"approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-1"},"evidence":["E1"]}]}
+        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-4","rationale":"broaden issuer","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","weakening":True,"approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-1"},"role":"security-reviewer","evidence":["E1"]}]}
         self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_unknown_approval_role_fails_closed(self):
+        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-5","rationale":"change gate","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-2"},"role":"developer","evidence":["E1"]}]}
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_role_spoof_by_wrong_identity_type_fails_closed(self):
+        a=assessment(); a["trustRootChange"]={"paths":["src/tutela_gate.py"],"id":"TR-6","rationale":"change gate","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","approvals":[{"approved":True,"approverIdentity":{"type":"workflow","value":"ci"},"role":"security-reviewer","evidence":["E1"]}]}
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_security_reviewer_cannot_authorize_weakening(self):
+        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-7","rationale":"broaden trust","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","weakening":True,"weakeningExplicitlyAuthorized":True,"approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"reviewer-1"},"role":"security-reviewer","evidence":["E1"]}]}
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_security_owner_can_explicitly_authorize_weakening(self):
+        a=assessment(); a["trustRootChange"]={"paths":["security/PROVENANCE-AUTHORITY.json"],"id":"TR-8","rationale":"approved constrained broadening","changedBy":"agent-a","previousDigest":"aaa","newDigest":"bbb","weakening":True,"weakeningExplicitlyAuthorized":True,"approvals":[{"approved":True,"approverIdentity":{"type":"human","value":"owner-1"},"role":"security-owner","evidence":["E1"]}]}
+        self.assertEqual([],validate(a))
 
 if __name__=="__main__": unittest.main()
