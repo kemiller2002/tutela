@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "subject": {
+    "repository": "x/y",
+    "ref": "abc"
+  },
+  "posture": "BLOCKED",
+  "invariantResults": [
+    {
+      "id": "SEC-INV-001",
+      "state": "Violated",
+      "evidence": [
+        "SEC-EVD-001"
+      ]
+    }
+  ],
+  "unknownSecurityEffects": [],
+  "exceptions": [
+    {
+      "id": "SEC-EXC-001",
+      "approver": "human",
+      "approved": true,
+      "expiresAt": "2020-01-01T00:00:00Z",
+      "covers": [
+        "SEC-INV-001"
+      ]
+    }
+  ]
+}
