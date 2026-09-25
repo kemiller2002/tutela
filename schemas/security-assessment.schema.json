@@ -204,6 +204,7 @@
         "paths",
         "rationale",
         "changedBy",
+        "changedByIdentity",
         "previousDigest",
         "newDigest",
         "approvals"
@@ -258,15 +259,35 @@
               "approverIdentity": {
                 "type": "object",
                 "required": [
-                  "type",
-                  "value"
+                  "kind",
+                  "provider",
+                  "subjectId",
+                  "bindingVerified",
+                  "bindingEvidence"
                 ],
                 "properties": {
-                  "type": {
+                  "kind": {
                     "type": "string"
                   },
-                  "value": {
+                  "provider": {
                     "type": "string"
+                  },
+                  "subjectId": {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  "login": {
+                    "type": "string"
+                  },
+                  "bindingVerified": {
+                    "const": true
+                  },
+                  "bindingEvidence": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1
                   }
                 },
                 "additionalProperties": false
@@ -284,6 +305,42 @@
             },
             "additionalProperties": false
           }
+        },
+        "changedByIdentity": {
+          "type": "object",
+          "required": [
+            "kind",
+            "provider",
+            "subjectId",
+            "bindingVerified",
+            "bindingEvidence"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "provider": {
+              "type": "string"
+            },
+            "subjectId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            "login": {
+              "type": "string"
+            },
+            "bindingVerified": {
+              "const": true
+            },
+            "bindingEvidence": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
