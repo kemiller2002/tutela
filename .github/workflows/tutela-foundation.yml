@@ -26,6 +26,21 @@ jobs:
       - name: Test deterministic gate
         run: python -m unittest discover -s tests -v
       - name: Project self-assessment presentation model
-        run: PYTHONPATH=src python src/tutela_present.py assessments/TUTELA-SELF-2026-0001.json > /tmp/tutela-self-view.json
+        run: |
+          PYTHONPATH=src python src/tutela_present.py assessments/TUTELA-SELF-2026-0001.json > /tmp/tutela-self-view.json
+          PYTHONPATH=src python src/tutela_render.py assessments/TUTELA-SELF-2026-0001.json /tmp/tutela-self-report.html
+      - name: Produce digest-bearing CI evidence artifact
+        env:
+          SUBJECT_REF: ${{ github.sha }}
+          RUN_REF: ${{ github.run_id }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          python src/tutela_evidence.py src/tutela_gate.py \
+            --id SEC-EVD-900 --type Test --source "Tutela deterministic gate" \
+            --subject-ref "$SUBJECT_REF" --producer "GitHub Actions" \
+            --producer-identity-type workflow --producer-identity-value tutela-foundation \
+            --provenance-kind ci --provenance-issuer github-actions --run-ref "$RUN_REF" \
+            --workflow-ref "$WORKFLOW_REF" --output /tmp/tutela-ci-evidence.json
+          python -m json.tool /tmp/tutela-ci-evidence.json >/dev/null
       - name: Verify example posture
         run: python src/tutela_gate.py examples/security-assessment.json --check-declared || [ $? -eq 1 ]
