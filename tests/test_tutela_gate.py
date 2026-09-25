@@ -99,4 +99,14 @@ class GateTests(unittest.TestCase):
         self.assertTrue(all(isinstance(x,str) for x in a["evidence"]))
         self.assertEqual("INDETERMINATE",derive(a)[0])
 
+    def test_independent_boolean_without_separation_basis_fails_closed(self):
+        a=assessment(); a["invariantResults"][0]["requiresIndependentVerification"]=True
+        a["invariantResults"][0]["verifierAttestations"]=[{"verifier":"review","independent":True,"evidence":["SEC-EVD-002"]}]
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_same_implementer_cannot_self_attest_independence(self):
+        a=assessment(); x=a["invariantResults"][0]; x["implementedBy"]="agent-a"; x["requiresIndependentVerification"]=True
+        x["verifierAttestations"]=[{"verifier":"agent-a","independent":True,"verifierIdentity":{"type":"agent","value":"agent-a"},"separationBasis":"claimed separate pass","evidence":["SEC-EVD-002"]}]
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
 if __name__=="__main__": unittest.main()
