@@ -1,13 +1,14 @@
 {
   "schemaVersion": 1,
   "id": "tutela-trust-root-change",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "protectedPaths": [
     "security/PROVENANCE-AUTHORITY.json",
     "security/TRUST-ROOT-CHANGE.json",
     "src/tutela_gate.py",
     "schemas/evidence.schema.json",
-    "schemas/security-assessment.schema.json"
+    "schemas/security-assessment.schema.json",
+    "security/ROLE-REGISTRY.json"
   ],
   "requirements": {
     "changeId": true,
@@ -20,7 +21,8 @@
     "newDigestRequired": true,
     "weakeningRequiresExplicitFlag": true,
     "approverAuthorityRequired": true,
-    "weakeningAuthorityRequired": true
+    "weakeningAuthorityRequired": true,
+    "roleMembershipSource": "security/ROLE-REGISTRY.json"
   },
   "approvalAuthorities": [
     {
