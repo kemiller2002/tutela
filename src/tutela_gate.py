@@ -19,6 +19,17 @@ DEFAULT_TRUST_ROOT_POLICY=Path(__file__).resolve().parents[1]/"security"/"TRUST-
 def load_trust_root_policy(path=None):
     return json.loads(Path(path or DEFAULT_TRUST_ROOT_POLICY).read_text())
 
+def approval_authorized(approval, trust_policy, weakening=False):
+    identity=approval.get("approverIdentity") or {}
+    role=approval.get("role")
+    for rule in trust_policy.get("approvalAuthorities",[]):
+        if (identity.get("type") in rule.get("identityTypes",[])
+            and role in rule.get("roles",[])
+            and "trust-root-change" in rule.get("mayApprove",[])
+            and (not weakening or rule.get("mayAuthorizeWeakening") is True)):
+            return True
+    return False
+
 def validate_trust_root_change(change, trust_policy):
     errors=[]
     if not change: return errors
@@ -30,11 +41,15 @@ def validate_trust_root_change(change, trust_policy):
     if change.get("previousDigest")==change.get("newDigest") and change.get("previousDigest"):
         errors.append("trustRootChange digests must describe an actual transition")
     approvals=change.get("approvals") or []
-    independent=[x for x in approvals if isinstance(x,dict) and x.get("approved") is True and x.get("approverIdentity") and x.get("evidence") and x.get("approverIdentity",{}).get("value") != change.get("changedBy")]
+    independent=[x for x in approvals if isinstance(x,dict) and x.get("approved") is True and x.get("approverIdentity") and x.get("evidence") and x.get("approverIdentity",{}).get("value") != change.get("changedBy") and approval_authorized(x,trust_policy,False)]
     if len(independent) < int(trust_policy.get("requirements",{}).get("approvalsMinimum",1)):
         errors.append("protected trust-root change requires independent approval evidence")
-    if change.get("weakening") is True and change.get("weakeningExplicitlyAuthorized") is not True:
-        errors.append("trust-root weakening requires explicit authorization")
+    if change.get("weakening") is True:
+        if change.get("weakeningExplicitlyAuthorized") is not True:
+            errors.append("trust-root weakening requires explicit authorization")
+        weakening_approvals=[x for x in independent if approval_authorized(x,trust_policy,True)]
+        if not weakening_approvals:
+            errors.append("trust-root weakening requires an authorized security-owner approval")
     return errors
 
 def load_authority_policy(path=None):
