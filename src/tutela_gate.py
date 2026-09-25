@@ -50,7 +50,7 @@ def approval_authorized(approval, trust_policy, role_registry, weakening=False, 
     role=approval.get("role")
     if role not in registered_roles(identity,role_registry,at): return False
     for rule in trust_policy.get("approvalAuthorities",[]):
-        if (identity.get("kind") in rule.get("identityTypes",[])
+        if (identity.get("kind") in rule.get("identityKinds",[])
             and role in rule.get("roles",[])
             and "trust-root-change" in rule.get("mayApprove",[])
             and (not weakening or rule.get("mayAuthorizeWeakening") is True)):
