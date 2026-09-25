@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "tutela-provenance-authority",
+  "version": "1.0.0",
+  "default": "deny",
+  "authorities": [
+    {
+      "id": "github-actions-test",
+      "evidenceTypes": [
+        "Test",
+        "StaticAnalysis",
+        "DependencyScan",
+        "SecretScan",
+        "ConfigScan"
+      ],
+      "provenanceKinds": [
+        "ci"
+      ],
+      "issuers": [
+        "github-actions"
+      ],
+      "producerIdentityTypes": [
+        "workflow"
+      ]
+    },
+    {
+      "id": "tutela-assessment-review",
+      "evidenceTypes": [
+        "ManualReview",
+        "AdversarialTest"
+      ],
+      "provenanceKinds": [
+        "assessment",
+        "review"
+      ],
+      "issuers": [
+        "tutela"
+      ],
+      "producerIdentityTypes": [
+        "assessment",
+        "agent",
+        "human"
+      ]
+    }
+  ]
+}
