@@ -1,1 +1,147 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","title":"Tutela Security Evidence","type":"object","required":["id","type","source","observedAt","subjectRef","producer"],"properties":{"id":{"type":"string","pattern":"^SEC-EVD-[0-9]{3,}$"},"type":{"enum":["Test","Aegis","StaticAnalysis","DependencyScan","SecretScan","ConfigScan","Fuzz","ManualReview","AdversarialTest","RuntimeObservation","Other"]},"source":{"type":"string"},"subjectRef":{"type":"string"},"observedAt":{"type":"string","format":"date-time"},"expiresAt":{"type":["string","null"],"format":"date-time"},"producer":{"type":"string"},"independentOfImplementation":{"type":"boolean"},"method":{"type":"string"},"result":{"type":"string"},"redacted":{"type":"boolean"},"hash":{"type":"string"},"limitations":{"type":"array","items":{"type":"string"}}},"additionalProperties":false}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Tutela Security Evidence",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "source",
+    "observedAt",
+    "subjectRef",
+    "producer",
+    "producerIdentity",
+    "artifactDigest",
+    "provenance"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "type": {
+      "enum": [
+        "Test",
+        "Aegis",
+        "StaticAnalysis",
+        "DependencyScan",
+        "SecretScan",
+        "ConfigScan",
+        "Fuzz",
+        "ManualReview",
+        "AdversarialTest",
+        "RuntimeObservation",
+        "Other"
+      ]
+    },
+    "source": {
+      "type": "string"
+    },
+    "subjectRef": {
+      "type": "string"
+    },
+    "observedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "validUntil": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "invalidatedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "invalidationReason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "producer": {
+      "type": "string"
+    },
+    "producerIdentity": {
+      "type": "object",
+      "required": [
+        "type",
+        "value"
+      ],
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "artifactDigest": {
+      "type": "object",
+      "required": [
+        "algorithm",
+        "value"
+      ],
+      "properties": {
+        "algorithm": {
+          "enum": [
+            "sha256",
+            "sha512"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "minLength": 32
+        }
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "kind",
+        "issuer",
+        "runRef"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "issuer": {
+          "type": "string"
+        },
+        "runRef": {
+          "type": "string"
+        },
+        "workflowRef": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "independentOfImplementation": {
+      "type": "boolean"
+    },
+    "method": {
+      "type": "string"
+    },
+    "result": {
+      "type": "string"
+    },
+    "redacted": {
+      "type": "boolean"
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}
