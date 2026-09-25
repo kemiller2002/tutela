@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "subject": {
+    "repository": "x/y",
+    "ref": "abc"
+  },
+  "posture": "PASS",
+  "evidence": [
+    {
+      "id": "E1",
+      "producer": "trusted-ci",
+      "producerIdentity": {
+        "type": "workflow"
+      },
+      "subjectRef": "abc",
+      "observedAt": "2026-09-25T00:00:00Z"
+    }
+  ],
+  "invariantResults": [
+    {
+      "id": "SEC-INV-001",
+      "state": "Verified",
+      "evidence": [
+        "E1"
+      ]
+    }
+  ],
+  "unknownSecurityEffects": [],
+  "exceptions": []
+}
