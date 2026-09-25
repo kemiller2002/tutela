@@ -21,7 +21,7 @@ def build(args):
                     **({"workflowRef":args.workflow_ref} if args.workflow_ref else {})},
       "method":f"{args.algorithm} digest of {Path(args.artifact).name}","redacted":True,
       "limitations":["Digest proves byte identity of the named artifact, not the truth or completeness of its claims."],
-      "bundleDigest":({"algorithm":"sha256","value":args.bundle_digest.removeprefix("sha256:")} if args.bundle_digest else None)}
+      "bundleDigest":({"algorithm":"sha256","value":bundle_digest.removeprefix("sha256:")} if (bundle_digest := getattr(args, "bundle_digest", None)) else None)}
 
 def main():
     p=argparse.ArgumentParser()
