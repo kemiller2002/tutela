@@ -1,16 +1,22 @@
 {
   "repository": "kemiller2002/praxis",
-  "commit": "c2657efb4d54f11d0fd0617cc1bcd5b8418601d5",
+  "commit": "b0037183389c8b9392919f58521b9487d1b4d5c6",
   "paths": {
     "cases.json": "tests/fixtures/provenance-interchange/cases.json",
     "echelon-chain.json": "tests/fixtures/provenance-interchange/echelon-chain.json",
-    "identity-environment.json": "tests/fixtures/provenance-interchange/identity-environment.json"
+    "identity-environment.json": "tests/fixtures/provenance-interchange/identity-environment.json",
+    "text-cases.json": "tests/fixtures/provenance-interchange/text-cases.json",
+    "lineage-cases.json": "tests/fixtures/provenance-interchange/lineage-cases.json",
+    "envelope-key-cases.json": "tests/fixtures/provenance-interchange/envelope-key-cases.json"
   },
   "files": {
-    "cases.json": "23abac4a98b0507bd31740475b784e051d801ac4555db6e8757fdf7a997df202",
+    "cases.json": "8f8551d9299891874d0d398cb20f14b96426a60cd2174da40fc1c3bb1831869b",
     "echelon-chain.json": "deaad21e322d80f3bcbd09947c20befa139db4d50aaca80d2b3d24eb94b1b3d8",
-    "identity-environment.json": "f4f2cde8517313677746d9983c7c399021c5e945534d4951ac0d92cc371db5b3"
+    "identity-environment.json": "f4f2cde8517313677746d9983c7c399021c5e945534d4951ac0d92cc371db5b3",
+    "text-cases.json": "4221fb84e84f81b2f50de642a8584f122fd67deed739c23517df8b764cc94bd6",
+    "lineage-cases.json": "db2381fe924d634c890839e495584e16772a4f35c34f75efb5bcb77576efe1f8",
+    "envelope-key-cases.json": "f3391e83bbb1d5522bc795c07d7bd0e9ba0d4457127c24c8b0c829fec7acdf4c"
   },
-  "note": "Vendored unchanged. tests/test_tutela_contribution_provenance.py recomputes each SHA-256 and fails on any local edit. Refresh only by copying new upstream files and updating this record.",
-  "contractRevision": "1.1"
+  "note": "Vendored unchanged. tests/test_tutela_contribution_provenance.py recomputes each SHA-256 and fails on any local edit. Refresh only by copying new upstream files and updating this record. envelope-key-cases.json is vendored for completeness only: Tutela receives no v1 envelopes and has no keyFromEnvelopeV1.",
+  "contractRevision": "1.2"
 }

@@ -17,8 +17,9 @@ this field. This module only decides whether a received block may be carried:
 - ``malformed``: the carrying record is invalid; rejected, never repaired.
 
 The receiving and appending rules mirror the Praxis reference implementation
-(lib/provenance-interchange.mjs at kemiller2002/praxis@c2657ef, contract revision 1.1) and are pinned
-to the vendored conformance cases in tests/fixtures/praxis-provenance/.
+(lib/provenance-interchange.mjs at kemiller2002/praxis@b003718, contract revision 1.2) and are pinned
+to the vendored conformance cases in tests/fixtures/praxis-provenance/. A block received as JSON
+text is read with ``classify_text`` (repeated member names and unpaired surrogates are malformed).
 Standard library only; every function is pure and never mutates its input.
 """
 from __future__ import annotations
@@ -45,16 +46,21 @@ KNOWN_OPERATIONS = (
 )
 _MODIFYING_OPERATIONS = frozenset({"modified", "superseded", "migrated", "transformed", "remediated", "resolved"})
 
-_CREDENTIAL_PATTERNS = tuple(re.compile(p, flags) for p, flags in (
-    (r"gh[pousr]_[A-Za-z0-9]{20,}", 0),
-    (r"github_pat_[A-Za-z0-9_]{20,}", 0),
-    (r"sk-[A-Za-z0-9_-]{20,}", 0),
-    (r"AKIA[0-9A-Z]{16}", 0),
-    (r"xox[abprs]-[A-Za-z0-9-]{10,}", 0),
-    (r"-----BEGIN [A-Z ]*PRIVATE KEY-----", 0),
-    (r"\bbearer\s+[A-Za-z0-9._~+/=-]{16,}", re.IGNORECASE),
-    (r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.", 0),
+# Contract 1.2: explicit ASCII classes only -- no \b, \s or case folding, whose meaning differs
+# between the JavaScript, .NET and Python engines. re.ASCII is belt and braces.
+_CREDENTIAL_PATTERNS = tuple(re.compile(p, re.ASCII) for p in (
+    r"gh[pousr]_[A-Za-z0-9]{20,}",
+    r"github_pat_[A-Za-z0-9_]{20,}",
+    r"sk-[A-Za-z0-9_-]{20,}",
+    r"AKIA[0-9A-Z]{16}",
+    r"xox[abprs]-[A-Za-z0-9-]{10,}",
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+    r"(?:^|[^A-Za-z0-9_])[Bb][Ee][Aa][Rr][Ee][Rr][\t\n\v\f\r ]+[A-Za-z0-9._~+/=-]{16,}",
+    r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.",
 ))
+# Contract 1.2: "blank" is judged over ASCII whitespace only (tab, LF, VT, FF, CR, space);
+# U+0085, U+FEFF, U+001C, U+00A0 and every other character are content. Never str.strip().
+_ASCII_EDGE_WHITESPACE = re.compile(r"\A[\t\n\v\f\r ]+|[\t\n\v\f\r ]+\Z")
 
 
 class ContributionProvenanceError(ValueError):
@@ -66,8 +72,17 @@ class ContributionProvenanceError(ValueError):
 
 def _is_object(value): return isinstance(value, dict)
 def _is_string(value): return isinstance(value, str)
-def _is_non_empty_string(value): return _is_string(value) and value.strip() != ""
-def _is_known(value): return _is_non_empty_string(value) and value.strip() != _UNKNOWN
+def _ascii_trim(value): return _ASCII_EDGE_WHITESPACE.sub("", value)
+def _is_non_empty_string(value): return _is_string(value) and _ascii_trim(value) != ""
+def _is_known(value): return _is_non_empty_string(value) and _ascii_trim(value) != _UNKNOWN
+
+
+def _has_lone_surrogate(value):
+    """True when the string is not well-formed Unicode (an unpaired UTF-16 surrogate, which
+    Python's json yields as a lone surrogate code point). Strict UTF-8 encoding refuses it."""
+    try: value.encode("utf-8")
+    except UnicodeEncodeError: return True
+    return False
 def _js(value): return "undefined" if value is None else str(value)
 
 
@@ -96,18 +111,24 @@ def _instant(value):
 def is_credential_like(value): return any(p.search(value) for p in _CREDENTIAL_PATTERNS)
 
 
+def _findings(test):
+    """Dotted paths of every key or string value in a JSON value for which `test` holds."""
+    def walk(node, path=""):
+        if _is_string(node): return [path] if test(node) else []
+        if isinstance(node, list): return [f for i, item in enumerate(node) for f in walk(item, f"{path}[{i}]")]
+        if _is_object(node):
+            return [f for key, value in node.items()
+                    for f in ([f"{path}.{key}" if path else key] if test(key) else []) + walk(value, f"{path}.{key}" if path else key)]
+        return []
+    return walk
+
+
+_surrogate_findings = _findings(_has_lone_surrogate)
+
+
 def credential_findings(node, path=""):
     """Dotted paths of every key or string value that looks like a credential."""
-    if _is_string(node): return [path] if is_credential_like(node) else []
-    if isinstance(node, list):
-        return [f for i, item in enumerate(node) for f in credential_findings(item, f"{path}[{i}]")]
-    if _is_object(node):
-        found = []
-        for key, value in node.items():
-            child = f"{path}.{key}" if path else key
-            found += ([child] if is_credential_like(key) else []) + credential_findings(value, child)
-        return found
-    return []
+    return _findings(is_credential_like)(node, path)
 
 
 def key_kind(key):
@@ -197,12 +218,16 @@ def classify(block):
     """Classify a received block as supported, unsupported or malformed (never mutates it, never raises).
     Any unexpected parse failure is reported as malformed rather than crashing the boundary."""
     try: return _classify(block)
-    except (ValueError, TypeError, OverflowError, RecursionError) as error:
+    except (ValueError, TypeError, OverflowError, RecursionError, UnicodeError, AttributeError) as error:
         return _verdict("malformed", [f"provenance could not be read: {type(error).__name__}"])
 
 
 def _classify(block):
     if not _is_object(block): return _verdict("malformed", ["provenance must be a JSON object"])
+    # Contract 1.2: a block that is not well-formed Unicode cannot be carried verbatim, whatever its version.
+    unpaired = _surrogate_findings(block)
+    if unpaired:
+        return _verdict("malformed", [f"{p}: unpaired UTF-16 surrogate; provenance must be well-formed Unicode" for p in unpaired])
     secrets = credential_findings(block)
     if secrets:
         return _verdict("malformed", [f"{p}: credential-like value; provenance must never carry authentication material" for p in secrets])
@@ -225,6 +250,62 @@ def _classify(block):
                 for k, e in contributions.items() for op in e["operations"]
                 if op not in KNOWN_OPERATIONS and not _EXTENSION.fullmatch(op)]
     return _verdict("supported", warnings=warnings)
+
+
+class _Members(dict):
+    """A parsed JSON object that keeps every member pair in text order, so repeated names
+    (which json would silently collapse, keeping the last) stay visible to the caller."""
+    def __init__(self, pairs):
+        super().__init__(pairs)
+        self.pairs = tuple(pairs)
+
+
+def _repeated_members(node, path=""):
+    """Dotted paths of every member name repeated within one object, in text order (pre-order),
+    matching the reference scanner in lib/provenance-interchange.mjs."""
+    if isinstance(node, list): return [f for i, item in enumerate(node) for f in _repeated_members(item, f"{path}[{i}]")]
+    if not isinstance(node, dict): return []
+    pairs = getattr(node, "pairs", tuple(node.items()))
+    first = {name: i for i, (name, _) in reversed(tuple(enumerate(pairs)))}
+    def child(name): return f"{path}.{name}" if path else name
+    return [f for i, (name, value) in enumerate(pairs)
+            for f in ([child(name)] if first[name] != i else []) + _repeated_members(value, child(name))]
+
+
+def _plain(node):
+    """The parsed value with every _Members replaced by a plain dict."""
+    if isinstance(node, list): return [_plain(item) for item in node]
+    if isinstance(node, dict): return {name: _plain(value) for name, value in node.items()}
+    return node
+
+
+def _refuse_constant(name): raise ValueError(f"{name} is not JSON")
+
+
+def parse_text(text):
+    """Strictly parse JSON text: ("ok", value) or ("malformed", problems). Never raises.
+    Invalid JSON (including NaN/Infinity), a member name repeated within any one object,
+    and bytes that are not UTF-8 are malformed (contract 1.2)."""
+    if isinstance(text, (bytes, bytearray)):
+        try: text = bytes(text).decode("utf-8")
+        except UnicodeDecodeError: return "malformed", ["provenance text is not UTF-8"]
+    if not _is_string(text): return "malformed", ["provenance text must be a string"]
+    try: parsed = json.loads(text, object_pairs_hook=_Members, parse_constant=_refuse_constant)
+    except (ValueError, TypeError, RecursionError, UnicodeError): return "malformed", ["provenance is not valid JSON"]
+    try: repeated = _repeated_members(parsed)
+    except RecursionError: return "malformed", ["provenance is nested too deeply to read"]
+    if repeated: return "malformed", [f"{p}: member name repeated within one object" for p in repeated]
+    try: return "ok", _plain(parsed)
+    except RecursionError: return "malformed", ["provenance is nested too deeply to read"]
+
+
+def classify_text(text):
+    """Classify a block received as JSON text (contract 1.2). Never raises. Text that is not
+    JSON, that repeats a member name within any object (readers disagree about which duplicate
+    wins, so a second 'created' could be smuggled past one of them), or that holds an unpaired
+    surrogate is malformed, whatever its major version."""
+    status, value = parse_text(text)
+    return classify(value) if status == "ok" else _verdict("malformed", value)
 
 
 def empty_block(): return {"schema": SCHEMA_TAG, "contributions": {}}
@@ -289,10 +370,29 @@ def _finish(block, changed):
 
 
 def add_lineage(block, references):
-    """Add lineage references (never authorship), preserving existing order."""
-    current = block.get("derivedFrom") if isinstance(block.get("derivedFrom"), list) else []
-    additions = [r for r in references if r not in current]
-    return copy.deepcopy(block) if not additions else {**copy.deepcopy(block), "derivedFrom": current + additions}
+    """Add lineage references (never authorship), preserving existing order (contract 1.2).
+    Lineage is held to the same rules as a contribution: the block must be supported, every
+    reference a non-empty (ASCII-trimmed), well-formed, credential-free string; duplicates are
+    dropped keeping the first occurrence; the result must itself classify as supported.
+    Returns {"ok": True, "block", "changed"} or {"ok": False, "error"}; the input is never mutated."""
+    received = classify(block)
+    if received["verdict"] != "supported":
+        suffix = f" ({received['schema']})" if received.get("schema") else ""
+        return _refuse(f"refusing to add lineage to a {received['verdict']} provenance block{suffix}")
+    if not isinstance(references, list): return _refuse("lineage references must be an array")
+    if not all(_is_non_empty_string(r) for r in references): return _refuse("lineage references must be non-empty strings")
+    unpaired = _surrogate_findings(references, "derivedFrom")
+    if unpaired: return _refuse(", ".join(unpaired) + ": unpaired UTF-16 surrogate")
+    secrets = credential_findings(references, "derivedFrom")
+    if secrets: return _refuse(", ".join(secrets) + ": credential-like value; provenance must never carry authentication material")
+    current = block["derivedFrom"] if isinstance(block.get("derivedFrom"), list) else []
+    additions = [r for i, r in enumerate(references) if r not in current and references.index(r) == i]
+    if not additions: return {"ok": True, "block": copy.deepcopy(block), "changed": False}
+    nxt = {**copy.deepcopy(block), "derivedFrom": copy.deepcopy(current) + additions}
+    result = classify(nxt)
+    if result["verdict"] != "supported":
+        return _refuse(f"the resulting lineage would be {result['verdict']}: " + "; ".join(result["problems"]))
+    return {"ok": True, "block": nxt, "changed": True}
 
 
 def preservation_violations(before, after):
@@ -379,7 +479,11 @@ def main(argv=None):
     p = argparse.ArgumentParser(description="Check contributionProvenance on a Tutela evidence record or assessment. Non-authoritative: this never affects posture.")
     p.add_argument("document", help="evidence record or security assessment JSON")
     args = p.parse_args(argv)
-    doc = json.loads(Path(args.document).read_text())
+    try: status, doc = parse_text(Path(args.document).read_bytes())
+    except OSError as error: status, doc = "malformed", [f"cannot read {args.document}: {error.strerror}"]
+    if status != "ok":
+        print(json.dumps({"valid": False, "problems": [f"document: {p}" for p in doc]}, indent=2))
+        return 2
     problems = assessment_problems(doc) if _is_object(doc) and "invariantResults" in doc else record_problems(doc, "evidence")
     print(json.dumps({"valid": not problems, "problems": problems}, indent=2))
     return 2 if problems else 0

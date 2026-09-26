@@ -5,9 +5,9 @@ import argparse, hashlib, json, sys
 from datetime import datetime, timezone
 from pathlib import Path
 try:
-    from src.tutela_contribution_provenance import accept, ContributionProvenanceError, FIELD as CONTRIBUTION_FIELD
+    from src.tutela_contribution_provenance import accept, parse_text, ContributionProvenanceError, FIELD as CONTRIBUTION_FIELD
 except ImportError:  # executed as a script: python src/tutela_evidence.py
-    from tutela_contribution_provenance import accept, ContributionProvenanceError, FIELD as CONTRIBUTION_FIELD
+    from tutela_contribution_provenance import accept, parse_text, ContributionProvenanceError, FIELD as CONTRIBUTION_FIELD
 
 def digest_file(path, algorithm="sha256"):
     h=hashlib.new(algorithm)
@@ -17,11 +17,14 @@ def digest_file(path, algorithm="sha256"):
 
 def load_contribution_provenance(path):
     """Read and validate a praxis.provenance/1 block (TUT-1707..TUT-1710).
+    The file is read as bytes and classified as text (contract 1.2): invalid JSON or UTF-8, a
+    member name repeated within any object, or an unpaired surrogate is malformed.
     Malformed -> ContributionProvenanceError; unsupported majors are returned verbatim.
     The block is self-reported and never affects producerIdentity, provenance or authority."""
-    try: block=json.loads(Path(path).read_text())
-    except json.JSONDecodeError as e: raise ContributionProvenanceError([f"{path} is not JSON: {e}"])
-    return accept(block)
+    try: status,value=parse_text(Path(path).read_bytes())
+    except OSError as e: raise ContributionProvenanceError([f"cannot read {path}: {e.strerror}"])
+    if status!="ok": raise ContributionProvenanceError([f"{path}: {problem}" for problem in value])
+    return accept(value)
 
 def build(args):
     contribution=getattr(args,"contribution_provenance_block",None)

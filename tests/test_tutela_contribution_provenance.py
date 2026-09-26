@@ -1,7 +1,8 @@
 """Praxis contribution provenance on Tutela records (TUT-1707..TUT-1712).
 
-Conformance: every vendored Praxis case (tests/fixtures/praxis-provenance/cases.json)
-and the Echelon end-to-end chain are replayed against src/tutela_contribution_provenance.py.
+Conformance: every vendored Praxis case (tests/fixtures/praxis-provenance/cases.json,
+text-cases.json, lineage-cases.json) and the Echelon end-to-end chain are replayed against
+src/tutela_contribution_provenance.py.
 """
 import copy, hashlib, json, subprocess, sys, tempfile, unittest
 from argparse import Namespace
@@ -13,6 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests" / "fixtures" / "praxis-provenance"
 VENDORED_SCHEMAS = ROOT / "schemas" / "vendor" / "praxis"
 CASES = json.loads((FIXTURES / "cases.json").read_text())["cases"]
+TEXT_CASES = json.loads((FIXTURES / "text-cases.json").read_text(encoding="utf-8"))["cases"]
+LINEAGE_CASES = json.loads((FIXTURES / "lineage-cases.json").read_text(encoding="utf-8"))["cases"]
 CHAIN = json.loads((FIXTURES / "echelon-chain.json").read_text())
 
 A = {"kind": "agent", "id": "openai/codex", "provider": "openai", "model": "gpt-5-codex", "runtime": "codex"}
@@ -39,13 +42,16 @@ class VendoredSourceTests(unittest.TestCase):
         for directory in (FIXTURES, VENDORED_SCHEMAS):
             source = json.loads((directory / "SOURCE.json").read_text())
             self.assertEqual("kemiller2002/praxis", source["repository"])
-            self.assertEqual("c2657efb4d54f11d0fd0617cc1bcd5b8418601d5", source["commit"])
+            self.assertEqual("b0037183389c8b9392919f58521b9487d1b4d5c6", source["commit"])
+            self.assertEqual("1.2", source["contractRevision"])
             for name, expected in source["files"].items():
                 with self.subTest(file=str(directory / name)):
                     self.assertEqual(expected, hashlib.sha256((directory / name).read_bytes()).hexdigest())
 
-    def test_all_contract_1_1_cases_are_present(self):
-        self.assertEqual(56, len(CASES))
+    def test_all_contract_1_2_cases_are_present(self):
+        self.assertEqual((70, 14, 8), (len(CASES), len(TEXT_CASES), len(LINEAGE_CASES)))
+        for name in ("cases.json", "text-cases.json", "lineage-cases.json", "envelope-key-cases.json"):
+            self.assertEqual("1.2", json.loads((FIXTURES / name).read_text(encoding="utf-8"))["contractRevision"], name)
 
     def test_tutela_never_reads_identity_environment_variables(self):
         """Rules 7-8 (identity environment scrubbing, ROS_EXECUTION_ID inheritance) apply to launchers.
@@ -117,7 +123,7 @@ class AppendingTests(unittest.TestCase):
         self.assertEqual("kept", after["x-carrier"])
 
     def test_lineage_is_not_authorship(self):
-        block = cp.add_lineage(ok(cp.append_contribution(cp.empty_block(), "EXE-1", {"operations": ["created"], "at": t(0), "actor": A})), ["aegis:finding/SF-0001"])
+        block = ok(cp.add_lineage(ok(cp.append_contribution(cp.empty_block(), "EXE-1", {"operations": ["created"], "at": t(0), "actor": A})), ["aegis:finding/SF-0001"]))
         self.assertEqual(["aegis:finding/SF-0001"], block["derivedFrom"])
         self.assertEqual("EXE-1", cp.originator(block)["key"])
 
@@ -235,13 +241,134 @@ class ContractRevision11Tests(unittest.TestCase):
                         self.assertEqual("supported", cp.classify(result["block"])["verdict"])
 
 
+class ContractRevision12Tests(unittest.TestCase):
+    """Praxis contract revision 1.2 (rules 1-3 and 6) and the second adversarial review
+    (findings 5, 10, 11). Rules 4 and 5 do not apply: Tutela derives no keys from v1
+    envelopes and discovers no identity (see test_tutela_never_reads_identity_environment_variables)."""
+
+    def verdict(self, block): return cp.classify(block)["verdict"]
+    created = {"schema": cp.SCHEMA_TAG, "contributions": {"CTB-1": {"operations": ["created"], "at": "2026-09-26T08:00:00.000Z", "actor": {"kind": "human", "id": "kevin"}}}}
+
+    def test_every_text_case_reaches_the_reference_verdict(self):
+        for case in TEXT_CASES:
+            with self.subTest(case=case["name"]):
+                self.assertEqual(case["expect"], cp.classify_text(case["text"])["verdict"])
+                self.assertEqual(case["expect"], cp.classify_text(case["text"].encode("utf-8", "surrogatepass"))["verdict"]
+                                 if case["expect"] != "malformed" else "malformed")
+
+    def test_every_lineage_case_reaches_the_reference_result(self):
+        for case in LINEAGE_CASES:
+            with self.subTest(case=case["name"]):
+                before = json.dumps(case["block"], sort_keys=True)
+                result = cp.add_lineage(case["block"], case["references"])
+                self.assertEqual(case["ok"], result["ok"], result.get("error"))
+                if case["ok"]:
+                    self.assertEqual(case["derivedFrom"], result["block"]["derivedFrom"])
+                    self.assertEqual("supported", self.verdict(result["block"]))
+                self.assertEqual(before, json.dumps(case["block"], sort_keys=True))
+
+    def test_finding_5_duplicate_contribution_key_cannot_smuggle_an_originator(self):
+        entry_text = '{{"operations":["{op}"],"at":"2026-09-26T08:00:00.000Z","actor":{{"kind":"human","id":"{who}"}}}}'
+        text = ('{"schema":"praxis.provenance/1","contributions":{"EXE-A":' + entry_text.format(op="created", who="mallory")
+                + ',"EXE-A":' + entry_text.format(op="modified", who="alice") + "}}")
+        result = cp.classify_text(text)
+        self.assertEqual("malformed", result["verdict"])
+        self.assertEqual(["contributions.EXE-A: member name repeated within one object"], result["problems"])
+        self.assertEqual(3, len(cp.classify_text('{"a":1,"a":2,"a":3,"b":{"c":1,"c":1}}')["problems"]))
+
+    def test_text_that_is_not_json_is_malformed_and_never_raises(self):
+        for text in ("", "{", '{"contributions":{}} x', '{"contributions":{},"x-n":NaN}', '{"contributions":{},"x-n":-Infinity}',
+                     "\ufeff{}", "[" * 100000, b"\xff\xfe", 7, None, {"contributions": {}}):
+            with self.subTest(text=repr(text)[:30]):
+                self.assertEqual("malformed", cp.classify_text(text)["verdict"])
+
+    def test_finding_10_lone_surrogate_is_malformed_whatever_the_version(self):
+        for block in ({"schema": "praxis.provenance/2", "x-a": "\ud800"},
+                      {**self.created, "derivedFrom": ["RQ-\udc00"]},
+                      {**self.created, "x-\ud83d": 1},
+                      {**self.created, "x-pair-as-code-units": "\ud83d\ude00"}):
+            with self.subTest(block=repr(block)[-30:]):
+                result = cp.classify(block)
+                self.assertEqual("malformed", result["verdict"])
+                self.assertIn("unpaired UTF-16 surrogate", result["problems"][0])
+        self.assertEqual("supported", self.verdict({**self.created, "x-emoji": "\U0001F600"}))
+        self.assertEqual("malformed", cp.classify_text('{"schema":"praxis.provenance/2","x-a":"\\ud800"}')["verdict"])
+        self.assertEqual("supported", cp.classify_text('{"schema":"praxis.provenance/1","contributions":{},"x":"\\ud83d\\ude00"}')["verdict"])
+
+    def test_classify_never_raises_on_non_json_python_values(self):
+        for block in ({**self.created, 1: "x"}, {**self.created, ("t",): 1}, {**self.created, "x": {1, 2}}, {**self.created, "x": b"\xff"}):
+            with self.subTest(block=repr(block)[-20:]):
+                self.assertIn(self.verdict(block), ("supported", "malformed"))
+
+    def test_finding_11_blank_means_ascii_whitespace_only(self):
+        def with_id(value): return {"schema": cp.SCHEMA_TAG, "contributions": {"CTB-1": {"operations": ["reviewed"], "at": t(0), "actor": {"kind": "human", "id": value}}}}
+        for blank in ("", " ", "\t\n\v\f\r "):
+            self.assertEqual("malformed", self.verdict(with_id(blank)), repr(blank))
+        for content in ("\u0085", "\ufeff", "\u001c", "\u00a0", "\u2028", "\u3000", " \u0085 "):
+            self.assertEqual("supported", self.verdict(with_id(content)), repr(content))
+        self.assertEqual("supported", self.verdict({**self.created, "derivedFrom": ["\u00a0"]}))
+        self.assertEqual("malformed", self.verdict({**self.created, "derivedFrom": ["\x0b"]}))
+
+    def test_finding_11_bearer_pattern_is_ascii_only(self):
+        token = "A" * 20
+        def credential(value): return cp.is_credential_like(value)
+        for value in ("Bearer " + token, "bEaReR\t" + token, "x:bearer\n\v" + token, "\u00e9bearer " + token, "-bearer " + token):
+            self.assertTrue(credential(value), repr(value))
+        for value in ("xbearer " + token, "_bearer " + token, "bearer\u0085" + token, "bearer\u00a0" + token,
+                      "bearer " + "\u212a" * 20, "b\u0130arer " + token, "bearer " + "A" * 15):
+            self.assertFalse(credential(value), repr(value))
+        self.assertEqual("supported", self.verdict({**self.created, "x-note": "bearer " + "\u212a" * 20}))
+
+    def test_rule_3_lineage_is_checked_like_contributions(self):
+        refused = {"credential": (self.created, ["ghp_" + "A" * 36]),
+                   "bearer": (self.created, ["see Bearer " + "b" * 20]),
+                   "blank": (self.created, ["\t "]),
+                   "surrogate": (self.created, ["RQ-\ud800"]),
+                   "not-a-list": (self.created, "RQ-1"),
+                   "null-reference": (self.created, [None]),
+                   "unsupported": ({"schema": "praxis.provenance/2"}, ["RQ-1"]),
+                   "malformed": ({"contributions": None}, ["RQ-1"]),
+                   "null-block": (None, ["RQ-1"]),
+                   "existing-lineage-malformed": ({**self.created, "derivedFrom": "RQ-0"}, ["RQ-1"])}
+        for name, (block, references) in refused.items():
+            with self.subTest(case=name):
+                result = cp.add_lineage(block, references)
+                self.assertFalse(result["ok"], result.get("block"))
+                self.assertNotIn("ghp_", result["error"]); self.assertNotIn("bbbbbbbb", result["error"])
+        same = cp.add_lineage({**self.created, "derivedFrom": ["RQ-1"]}, ["RQ-1"])
+        self.assertEqual((True, False), (same["ok"], same["changed"]))
+        added = cp.add_lineage(self.created, ["RQ-2", "RQ-1", "RQ-2"])
+        self.assertEqual((["RQ-2", "RQ-1"], True), (added["block"]["derivedFrom"], added["changed"]))
+        self.assertNotIn("derivedFrom", self.created)
+
+    def test_rule_6_stored_null_is_malformed_not_absent(self):
+        self.assertEqual("malformed", cp.read({"id": "E", "contributionProvenance": None})["verdict"])
+        self.assertTrue(cp.record_problems({"id": "E", "contributionProvenance": None}))
+        self.assertEqual("unattributed", cp.read({"id": "E"})["verdict"])
+        a = json.loads((ROOT / "examples" / "security-assessment.json").read_text())
+        a["contributionProvenance"] = None
+        self.assertEqual(1, len(cp.assessment_problems(a)))
+
+    def test_checker_cli_reads_the_document_strictly_without_a_traceback(self):
+        block = json.dumps(self.created)
+        for name, text, code in (("valid", '{"id":"E","contributionProvenance":' + block + "}", 0),
+                                 ("null", '{"id":"E","contributionProvenance":null}', 2),
+                                 ("duplicate", '{"id":"E","contributionProvenance":' + block[:-1] + ',"schema":"praxis.provenance/2"}}', 2),
+                                 ("not-json", "{", 2)):
+            with self.subTest(case=name), tempfile.TemporaryDirectory() as d:
+                doc = Path(d) / "e.json"; doc.write_text(text, encoding="utf-8")
+                result = subprocess.run([sys.executable, str(ROOT / "src" / "tutela_contribution_provenance.py"), str(doc)], capture_output=True, text=True)
+                self.assertEqual(code, result.returncode, result.stdout + result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+
+
 class EchelonChainTests(unittest.TestCase):
     def replay(self):
         records = {}
         for step in CHAIN["steps"]:
             current = records.get(step["record"], cp.empty_block())
             if "lineage" in step:
-                records[step["record"]] = cp.add_lineage(current, step["lineage"]); continue
+                records[step["record"]] = ok(cp.add_lineage(current, step["lineage"])); continue
             result = cp.append_contribution(current, step["append"]["key"], step["append"]["contribution"])
             self.assertTrue(result["ok"], result.get("error"))
             self.assertEqual([], cp.preservation_violations(current, result["block"]))
@@ -289,7 +416,7 @@ class TutelaBoundaryTests(unittest.TestCase):
         block = ok(cp.append_contribution(block, "EXT-github-actions.run-777-1", {"operations": ["validated"], "at": "2026-09-26T10:20:00.000Z", "actor": CI, "evidence": ["SEC-EVD-001"]}))
         block = ok(cp.append_contribution(block, "CTB-20260926-5f2e19aa", {"operations": ["reviewed"], "at": "2026-09-26T11:00:00.000Z", "actor": H}))
         block = ok(cp.append_contribution(block, "EXT-aegis.op-9", {"operations": ["transformed"], "at": "2026-09-26T11:05:00.000Z", "actor": AEGIS}))
-        return cp.add_lineage(block, ["aegis:finding/SF-0001"])
+        return ok(cp.add_lineage(block, ["aegis:finding/SF-0001"]))
 
     def test_supported_block_is_attached_verbatim(self):
         block = {**self.aegis_block(), "x-future": {"kept": True}}
@@ -408,6 +535,31 @@ class EvidenceBuilderTests(unittest.TestCase):
                 self.assertNotIn("Traceback", result.stderr)
                 self.assertIn("calendar-valid", result.stderr)
                 self.assertFalse(out.exists())
+
+    def test_cli_reads_the_block_as_text_contract_1_2(self):
+        """Contract 1.2 rule 1 at the builder boundary: duplicates, lone surrogates, NaN and
+        bytes that are not UTF-8 are rejected before anything is written."""
+        valid = json.dumps(TutelaBoundaryTests().aegis_block())
+        for name, text in (("duplicate-created", valid[:-1] + ',"contributions":{}}'),
+                           ("duplicate-in-future-major", '{"schema":"praxis.provenance/2","x":1,"x":2}'),
+                           ("lone-surrogate", valid[:-1] + ',"x-a":"\\udc00"}'),
+                           ("nan", valid[:-1] + ',"x-a":NaN}'),
+                           ("null", "null")):
+            with self.subTest(case=name), tempfile.TemporaryDirectory() as d:
+                out = Path(d) / "e.json"
+                result = self.run_cli(text, out)
+                self.assertEqual(2, result.returncode, result.stderr)
+                self.assertIn("contributionProvenance", result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+                self.assertFalse(out.exists())
+        with tempfile.TemporaryDirectory() as d:
+            artifact = Path(d) / "a.txt"; artifact.write_bytes(b"x")
+            with self.assertRaises(cp.ContributionProvenanceError):
+                from src.tutela_evidence import load_contribution_provenance
+                bad = Path(d) / "b.json"; bad.write_bytes(b'{"contributions":{},"x":"\xff"}')
+                load_contribution_provenance(bad)
+            with self.assertRaises(cp.ContributionProvenanceError):
+                load_contribution_provenance(Path(d) / "missing.json")
 
     def test_cli_carries_unsupported_major_verbatim_with_warning(self):
         with tempfile.TemporaryDirectory() as d:
