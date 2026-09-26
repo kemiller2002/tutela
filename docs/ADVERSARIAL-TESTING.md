@@ -63,3 +63,12 @@ Dependency fault injection accepts only an explicitly marked Tutela test double.
 Resource-pressure testing is synthetic and local. A supplied probe receives bounded units and iterations; the adapter itself creates no network load. Applications can use the probe boundary to exercise queue limits, allocation policies, backpressure, admission control or similar behavior in an isolated test environment.
 
 These boundaries are intentional. Real infrastructure chaos, load generation or production fault injection require a distinct future capability with stronger authorization, environment isolation, abort controls and evidence requirements.
+
+
+## Campaign orchestration and evidence bundle
+
+The orchestrator is the single campaign dispatch boundary. Each scenario declares exactly one execution capability: HTTP, concurrency, dependency fault or resource pressure. Ambiguous scenarios, missing runtime bindings and adapter failures are INDETERMINATE and are preserved as negative knowledge.
+
+Concurrency may compose over a declarative HTTP operation, but the nested request remains subject to the same authorized-origin and HTTP budgets as a direct HTTP scenario.
+
+A completed orchestration emits one canonical campaign bundle containing immutable subject identity, environment, authorization reference, observation time, per-scenario capability/outcome/observations/limitations, unknown coverage and a SHA-256 bundle digest. The bundle can be projected into the existing Tutela Security Evidence model as type AdversarialTest. The evidence limitations include campaign unknown coverage so a digest-bearing artifact cannot erase uncertainty.
