@@ -1,0 +1,18 @@
+{
+ "$schema":"https://json-schema.org/draft/2020-12/schema",
+ "title":"Tutela Adversarial Campaign Result",
+ "type":"object",
+ "required":["schemaVersion","campaignId","subject","environment","observedAt","authorizationRef","results","unknownCoverage","budget","resultDigest"],
+ "properties":{
+  "schemaVersion":{"const":1},"campaignId":{"type":"string"},"subject":{"type":"object"},
+  "environment":{"type":"string"},"observedAt":{"type":"string","format":"date-time"},
+  "authorizationRef":{"type":"string"},
+  "results":{"type":"array","items":{"type":"object","required":["id","category","expectedInvariants","outcome","attempts","limitations"],
+    "properties":{"id":{"type":"string"},"category":{"type":"string"},"expectedInvariants":{"type":"array","items":{"type":"string"}},
+    "outcome":{"enum":["RESISTED","DEGRADED_SAFE","VIOLATED","INDETERMINATE"]},"attempts":{"type":"array","items":{"type":"object"}},
+    "limitations":{"type":"array","items":{"type":"string"}}},"additionalProperties":false}},
+  "unknownCoverage":{"type":"array","items":{"type":"string"}},
+  "budget":{"type":"object","required":["maxScenarios","maxAttemptsPerScenario","maxTotalAttempts","attemptsUsed"]},
+  "resultDigest":{"type":"object","required":["algorithm","value"],"properties":{"algorithm":{"const":"sha256"},"value":{"type":"string","minLength":64}},"additionalProperties":false}
+ }, "additionalProperties":false
+}
