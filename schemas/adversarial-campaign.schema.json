@@ -47,6 +47,18 @@
             "headers":{"type":"object","additionalProperties":{"type":"string"}},
             "body":{"type":"string","maxLength":65536}
           },"additionalProperties":false},
+          "concurrency":{"type":"object","required":["workers","operations"],"properties":{
+            "workers":{"type":"integer","minimum":1,"maximum":4},
+            "operations":{"type":"integer","minimum":1,"maximum":12}
+          },"additionalProperties":false},
+          "dependencyFault":{"type":"object","required":["kind","count"],"properties":{
+            "kind":{"enum":["timeout","unavailable","malformed-response","stale-response","duplicate-response"]},
+            "count":{"type":"integer","minimum":1,"maximum":5}
+          },"additionalProperties":false},
+          "resourcePressure":{"type":"object","required":["units","iterations"],"properties":{
+            "units":{"type":"integer","minimum":1,"maximum":10000},
+            "iterations":{"type":"integer","minimum":1,"maximum":100}
+          },"additionalProperties":false},
           "expect":{"type":"object","properties":{
             "status":{"type":"array","items":{"type":"integer","minimum":100,"maximum":599}},
             "violationStatus":{"type":"array","items":{"type":"integer","minimum":100,"maximum":599}}
