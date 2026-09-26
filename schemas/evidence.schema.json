@@ -164,7 +164,32 @@
         }
       },
       "additionalProperties": false
+    },
+    "contributionProvenance": {
+      "$ref": "#/$defs/contributionProvenance"
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$defs": {
+    "contributionProvenance": {
+      "description": "OPTIONAL Praxis contribution provenance (TUT-1707..TUT-1712; Praxis RQ-ROS-2026-A015, DF-ROS-2026-A037): who reports having discovered, remediated, measured, validated or reviewed the evidenced subject, and in which execution. SELF-REPORTED and NON-AUTHORITATIVE (RQ-ROS-2026-A010, RQ-ROS-2026-A019): it never satisfies producerIdentity, provenance (issuer/run attestation), identity bindings, approver or verifier identity, role authorization, verifier independence, or evidence authority, and the release gate does not read it. A praxis.provenance/1 block MUST conform to the vendored Praxis schema; a block tagged with another major version is carried verbatim and not interpreted. Malformed blocks (including any credential-like value) make the record invalid; see src/tutela_contribution_provenance.py for the full receiving rules that JSON Schema cannot express.",
+      "anyOf": [
+        {
+          "$ref": "vendor/praxis/provenance-interchange.schema.json"
+        },
+        {
+          "type": "object",
+          "required": [
+            "schema"
+          ],
+          "properties": {
+            "schema": {
+              "type": "string",
+              "pattern": "^praxis\\.provenance/([2-9]|[1-9][0-9]+)$"
+            }
+          }
+        }
+      ]
+    }
+  }
 }

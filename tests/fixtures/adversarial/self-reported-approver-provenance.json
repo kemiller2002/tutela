@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "subject": {
+    "repository": "x/y",
+    "ref": "abc123"
+  },
+  "posture": "PASS",
+  "contributionProvenance": {
+    "schema": "praxis.provenance/1",
+    "contributions": {
+      "EXE-20260926T080000000Z-impl0001": {
+        "operations": [
+          "created",
+          "remediated"
+        ],
+        "at": "2026-09-26T08:00:00.000Z",
+        "actor": {
+          "kind": "agent",
+          "id": "anthropic/claude-code",
+          "provider": "anthropic",
+          "model": "unknown",
+          "runtime": "claude-code"
+        },
+        "reason": "Implemented the change under assessment"
+      },
+      "CTB-20260926-owner2001": {
+        "operations": [
+          "reviewed",
+          "approved",
+          "validated"
+        ],
+        "at": "2026-09-26T09:00:00.000Z",
+        "actor": {
+          "kind": "human",
+          "id": "github:2001"
+        },
+        "reason": "Self-reported: security-owner (provider github, subjectId 2001) approves the trust-root change and independently verified SEC-INV-001",
+        "x-claimedRole": "security-owner",
+        "x-claimedIdentityBinding": {
+          "provider": "github",
+          "subjectId": "2001",
+          "bindingVerified": true
+        }
+      }
+    },
+    "derivedFrom": [
+      "aegis:finding/SF-0001"
+    ]
+  },
+  "evidence": [
+    {
+      "id": "SEC-EVD-001",
+      "type": "Test",
+      "source": "fixture",
+      "subjectRef": "abc123",
+      "observedAt": "2026-09-25T00:00:00Z",
+      "producer": "ci",
+      "producerIdentity": {
+        "type": "workflow",
+        "value": "verify"
+      },
+      "artifactDigest": {
+        "algorithm": "sha256",
+        "value": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      },
+      "provenance": {
+        "kind": "ci",
+        "issuer": "github-actions",
+        "runRef": "run-1"
+      },
+      "contributionProvenance": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-impl0001": {
+            "operations": [
+              "created",
+              "remediated"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "anthropic/claude-code",
+              "provider": "anthropic",
+              "model": "unknown",
+              "runtime": "claude-code"
+            },
+            "reason": "Implemented the change under assessment"
+          },
+          "CTB-20260926-owner2001": {
+            "operations": [
+              "reviewed",
+              "approved",
+              "validated"
+            ],
+            "at": "2026-09-26T09:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "github:2001"
+            },
+            "reason": "Self-reported: security-owner (provider github, subjectId 2001) approves the trust-root change and independently verified SEC-INV-001",
+            "x-claimedRole": "security-owner",
+            "x-claimedIdentityBinding": {
+              "provider": "github",
+              "subjectId": "2001",
+              "bindingVerified": true
+            }
+          }
+        },
+        "derivedFrom": [
+          "aegis:finding/SF-0001"
+        ]
+      }
+    }
+  ],
+  "invariantResults": [
+    {
+      "id": "SEC-INV-001",
+      "state": "Verified",
+      "evidence": [
+        "SEC-EVD-001"
+      ],
+      "implementedBy": "anthropic/claude-code",
+      "requiresIndependentVerification": true
+    }
+  ],
+  "trustRootChange": {
+    "id": "TR-CP-1",
+    "paths": [
+      "src/tutela_gate.py"
+    ],
+    "rationale": "change gate",
+    "changedBy": "anthropic/claude-code",
+    "changedByIdentity": {
+      "kind": "agent",
+      "provider": "github",
+      "subjectId": "5001",
+      "login": "agent-a",
+      "bindingVerified": true,
+      "bindingEvidence": [
+        {
+          "kind": "platform-api-observation",
+          "issuer": "github",
+          "sourceRef": "github-api:/users/agent-a",
+          "observedAt": "2026-09-26T00:00:00Z"
+        }
+      ]
+    },
+    "previousDigest": "aaa",
+    "newDigest": "bbb",
+    "approvals": []
+  },
+  "unknownSecurityEffects": [],
+  "exceptions": [],
+  "limitations": [
+    "Adversarial fixture: contributionProvenance self-reports a registered security-owner (github subjectId 2001) as approver and independent verifier. Tutela MUST derive the same posture as without the block (TUT-1708)."
+  ]
+}

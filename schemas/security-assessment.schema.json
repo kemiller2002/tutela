@@ -344,6 +344,10 @@
         }
       },
       "additionalProperties": false
+    },
+    "contributionProvenance": {
+      "description": "OPTIONAL self-reported, non-authoritative Praxis contribution provenance for the assessment itself (who reports having assessed/reviewed it). Never an approval, verifier attestation, identity binding or role claim; see evidence.schema.json#/$defs/contributionProvenance.",
+      "$ref": "evidence.schema.json#/$defs/contributionProvenance"
     }
   },
   "additionalProperties": false
