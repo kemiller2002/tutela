@@ -1,5 +1,5 @@
 import unittest
-from tutela_identity import binding_from_github
+from src.tutela_identity import binding_from_github
 
 class IdentityTests(unittest.TestCase):
     def test_uses_immutable_numeric_github_id(self):
