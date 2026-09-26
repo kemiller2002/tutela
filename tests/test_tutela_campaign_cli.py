@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 from src import tutela_campaign
 
-BUNDLE={"results":[{"outcome":"RESISTED"}],"unknownCoverage":[]}
+BUNDLE={"results":[{"id":"S1","outcome":"RESISTED"}],"unknownCoverage":[]}
 class CampaignCliTests(unittest.TestCase):
  def files(self):
   d=tempfile.TemporaryDirectory(); root=Path(d.name)
