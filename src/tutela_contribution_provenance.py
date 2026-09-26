@@ -17,7 +17,7 @@ this field. This module only decides whether a received block may be carried:
 - ``malformed``: the carrying record is invalid; rejected, never repaired.
 
 The receiving and appending rules mirror the Praxis reference implementation
-(lib/provenance-interchange.mjs at kemiller2002/praxis@a42c44e) and are pinned
+(lib/provenance-interchange.mjs at kemiller2002/praxis@c2657ef, contract revision 1.1) and are pinned
 to the vendored conformance cases in tests/fixtures/praxis-provenance/.
 Standard library only; every function is pure and never mutates its input.
 """
@@ -72,16 +72,18 @@ def _js(value): return "undefined" if value is None else str(value)
 
 
 def _parse_millis(value):
-    """Milliseconds since the epoch as the reference (ECMAScript Date.parse) reads the
-    timestamp grammar, or None when it is not a valid instant."""
+    """Milliseconds since the epoch for a calendar-valid UTC timestamp (year 0001-9999, no
+    rollover such as Feb 30 or 24:00), or None. Extra fractional digits are truncated, never
+    rounded, so ordering is compared at millisecond precision (contract revision 1.1).
+    Never raises."""
     if not _is_string(value): return None
     m = _TIMESTAMP.fullmatch(value)
     if not m: return None
     year, month, day, hour, minute, second = (int(g) for g in m.groups()[:6])
     millis = int(((m.group(7) or ".")[1:] + "000")[:3])
-    if not (1 <= month <= 12 and 1 <= day <= 31 and minute <= 59 and second <= 59): return None
-    if hour > 24 or (hour == 24 and (minute or second or millis)): return None
-    days = date(year, month, 1).toordinal() - date(1970, 1, 1).toordinal() + day - 1
+    if year < 1 or hour > 23 or minute > 59 or second > 59: return None
+    try: days = date(year, month, day).toordinal() - date(1970, 1, 1).toordinal()
+    except ValueError: return None
     return (((days * 24 + hour) * 60 + minute) * 60 + second) * 1000 + millis
 
 
@@ -159,10 +161,10 @@ def contribution_problems(key, entry):
                      for op in operations if not (_is_string(op) and _OPERATION.fullmatch(op))]
         if len({json.dumps(op, sort_keys=True) for op in operations}) != len(operations):
             problems.append(f"{prefix}.operations must not repeat an operation")
-    if not _is_timestamp(entry.get("at")): problems.append(f"{prefix}.at must be an ISO-8601 UTC timestamp")
+    if not _is_timestamp(entry.get("at")): problems.append(f"{prefix}.at must be a calendar-valid ISO-8601 UTC timestamp")
     if "last" in entry:
         last = entry["last"]
-        if not (_is_string(last) and _TIMESTAMP.fullmatch(last)): problems.append(f"{prefix}.last must be an ISO-8601 UTC timestamp")
+        if not _is_timestamp(last): problems.append(f"{prefix}.last must be a calendar-valid ISO-8601 UTC timestamp")
         elif _instant(last) < _instant(entry.get("at")): problems.append(f"{prefix}.last must not precede at")
     if "actor" not in entry: problems.append(f"{prefix}.actor is required")
     else: problems += actor_problems(entry["actor"], f"{prefix}.actor")
@@ -192,7 +194,14 @@ def _verdict(verdict, problems=(), warnings=(), schema=None):
 
 
 def classify(block):
-    """Classify a received block as supported, unsupported or malformed (never mutates it)."""
+    """Classify a received block as supported, unsupported or malformed (never mutates it, never raises).
+    Any unexpected parse failure is reported as malformed rather than crashing the boundary."""
+    try: return _classify(block)
+    except (ValueError, TypeError, OverflowError, RecursionError) as error:
+        return _verdict("malformed", [f"provenance could not be read: {type(error).__name__}"])
+
+
+def _classify(block):
     if not _is_object(block): return _verdict("malformed", ["provenance must be a JSON object"])
     secrets = credential_findings(block)
     if secrets:
@@ -227,35 +236,56 @@ def append_contribution(block, key, contribution):
     received = classify(block)
     if received["verdict"] != "supported":
         suffix = f" ({received['schema']})" if received.get("schema") else ""
-        return {"ok": False, "error": f"refusing to append to a {received['verdict']} provenance block{suffix}"}
+        return _refuse(f"refusing to append to a {received['verdict']} provenance block{suffix}")
+    secrets = credential_findings({key: contribution})
+    if secrets: return _refuse(", ".join(secrets) + ": credential-like value; provenance must never carry authentication material")
     problems = contribution_problems(key, contribution)
-    if problems: return {"ok": False, "error": "; ".join(problems)}
+    if problems: return _refuse("; ".join(problems))
     nxt = copy.deepcopy(block)
     existing = nxt["contributions"].get(key)
     ops = contribution["operations"]
     if existing is None:
         if "created" in ops:
             if _creators(nxt["contributions"]):
-                return {"ok": False, "error": "the record already has an originator; record 'modified' instead of 'created'"}
+                return _refuse("the record already has an originator; record 'modified' instead of 'created'")
             if any(_instant(e.get("at")) < _instant(contribution["at"]) for e in nxt["contributions"].values()):
-                return {"ok": False, "error": "a 'created' contribution cannot follow existing contributions"}
+                return _refuse("a 'created' contribution cannot follow existing contributions")
         nxt["contributions"][key] = copy.deepcopy(contribution)
-        return {"ok": True, "block": nxt, "changed": True}
+        return _finish(nxt, True)
     if not actors_agree(existing["actor"], contribution["actor"]):
-        return {"ok": False, "error": f"contribution '{key}' is already attributed to {existing['actor'].get('kind')}:{existing['actor'].get('id')}; refusing to re-attribute it"}
+        return _refuse(f"contribution '{key}' is already attributed to {existing['actor'].get('kind')}:{existing['actor'].get('id')}; refusing to re-attribute it")
+    # An actor with unknown identity cannot extend an entry a known actor holds.
+    if ((_is_known(existing["actor"].get("id")) and not _is_known(contribution["actor"].get("id")))
+            or (existing["actor"].get("kind") != _UNKNOWN and contribution["actor"].get("kind") == _UNKNOWN)):
+        return _refuse(f"contribution '{key}' belongs to {existing['actor'].get('kind')}:{existing['actor'].get('id')}; an actor with unknown identity cannot extend it")
+    if "created" in ops and "created" not in existing["operations"]:
+        earlier = any(other != key and _instant(e.get("at")) < _instant(existing.get("at")) for other, e in nxt["contributions"].items())
+        if _creators(nxt["contributions"]) or earlier:
+            return _refuse("the record's originator is already recorded or precedes this contribution; record 'modified' instead of 'created'")
     operations = existing["operations"] + [op for op in ops if op not in existing["operations"]]
-    if "created" in ops and "created" not in existing["operations"] and _creators(nxt["contributions"]):
-        return {"ok": False, "error": "the record already has an originator; record 'modified' instead of 'created'"}
     prior_evidence = existing.get("evidence", [])
     evidence = prior_evidence + [x for x in contribution.get("evidence", []) if x not in prior_evidence]
-    latest = existing.get("last", existing.get("at"))
-    merged = {**existing, "operations": operations,
+    candidates = [existing.get("last", existing.get("at")), contribution.get("last", contribution.get("at"))]
+    latest = candidates[1] if _instant(candidates[1]) > _instant(candidates[0]) else candidates[0]
+    # Unknown fields from the incoming contribution are kept; the existing entry wins on conflict.
+    merged = {**copy.deepcopy(contribution), **existing, "operations": operations,
               **({"evidence": evidence} if evidence else {}),
-              **({"last": contribution["at"]} if _instant(contribution["at"]) > _instant(latest) else {}),
+              **({"last": latest} if _instant(latest) > _instant(existing.get("at")) else {}),
               **({"reason": contribution["reason"]} if "reason" not in existing and "reason" in contribution else {})}
-    changed = merged != existing
+    changed = json.dumps(merged) != json.dumps(existing)
     nxt["contributions"][key] = merged
-    return {"ok": True, "block": nxt, "changed": changed}
+    return _finish(nxt, changed)
+
+
+def _refuse(error): return {"ok": False, "error": error}
+
+
+def _finish(block, changed):
+    """Contract 1.1: whatever an append returns must itself classify as supported."""
+    result = classify(block)
+    if result["verdict"] != "supported":
+        return _refuse(f"the resulting history would be {result['verdict']}: " + "; ".join(result["problems"]))
+    return {"ok": True, "block": block, "changed": changed}
 
 
 def add_lineage(block, references):
