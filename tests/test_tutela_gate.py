@@ -14,7 +14,7 @@ def role_registry(*memberships):
     return {"schemaVersion":1,"id":"test-role-registry","version":"1","default":"deny","memberships":list(memberships)}
 
 def bound_identity(kind,subject_id,login="test-user",provider="github",verified=True):
-    return {"kind":kind,"provider":provider,"subjectId":str(subject_id),"login":login,"bindingVerified":verified,"bindingEvidence":["ID-EVD-1"]}
+    return {"kind":kind,"provider":provider,"subjectId":str(subject_id),"login":login,"bindingVerified":verified,"bindingEvidence":[{"kind":"platform-api-observation","issuer":"github","sourceRef":"github-api:/users/test","observedAt":"2026-09-26T00:00:00Z"}]}
 
 def membership(identity_type,value,roles,valid_from=None,valid_until=None):
     m={"identity":bound_identity(identity_type,value),"roles":roles}
@@ -202,6 +202,18 @@ class GateTests(unittest.TestCase):
     def test_unverified_binding_has_no_roles(self):
         rr=role_registry(membership("human","2001",["security-owner"]))
         identity=bound_identity("human","2001","owner-1",verified=False)
+        self.assertEqual(set(),registered_roles(identity,rr))
+
+    def test_fake_binding_evidence_issuer_has_no_roles(self):
+        rr=role_registry(membership("human","2001",["security-owner"]))
+        identity=bound_identity("human","2001","owner-1")
+        identity["bindingEvidence"][0]["issuer"]="attacker"
+        self.assertEqual(set(),registered_roles(identity,rr))
+
+    def test_unstructured_binding_evidence_has_no_roles(self):
+        rr=role_registry(membership("human","2001",["security-owner"]))
+        identity=bound_identity("human","2001","owner-1")
+        identity["bindingEvidence"]=["trust-me"]
         self.assertEqual(set(),registered_roles(identity,rr))
 
 if __name__=="__main__": unittest.main()
