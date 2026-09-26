@@ -149,6 +149,21 @@ def validate(a, authority_policy=None, trust_policy=None, role_registry=None, at
                         errors.append(f"{iid or p} verifier is not independent of implementer")
                 if not independent:
                     errors.append(f"{iid or p} requires an independent verifier attestation")
+    adversarial_items=a.get("adversarialResults",[])
+    if not isinstance(adversarial_items,list):
+        errors.append("adversarialResults must be an array when supplied")
+    else:
+        seen_adversarial=set()
+        for i,x in enumerate(adversarial_items):
+            p=f"adversarialResults[{i}]"
+            if not isinstance(x,dict): errors.append(f"{p} must be an object"); continue
+            aid=x.get("id")
+            if not aid: errors.append(f"{p}.id is required")
+            elif aid in seen_adversarial: errors.append(f"duplicate adversarial result id {aid}")
+            else: seen_adversarial.add(aid)
+            if x.get("outcome") not in {"RESISTED","DEGRADED_SAFE","VIOLATED","INDETERMINATE","NOT_RUN"}:
+                errors.append(f"{aid or p}.outcome is invalid")
+            if not isinstance(x.get("required"),bool): errors.append(f"{aid or p}.required must be boolean")
     evidence_items=a.get("evidence",[])
     if not isinstance(evidence_items,list): errors.append("evidence must be an array when supplied")
     else:
