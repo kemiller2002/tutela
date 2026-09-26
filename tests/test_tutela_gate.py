@@ -244,3 +244,11 @@ class AdversarialGateTests(unittest.TestCase):
     def test_optional_unrun_does_not_lower_posture(self):
         a=self.base(); a["adversarialResults"]=[{"id":"ATK-1","outcome":"NOT_RUN","required":False}]
         self.assertEqual("PASS",derive(a)[0])
+
+    def test_invalid_adversarial_outcome_fails_closed(self):
+        a=self.base(); a["adversarialResults"]=[{"id":"ATK-1","outcome":"MAGIC","required":True}]
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_duplicate_adversarial_id_fails_closed(self):
+        a=self.base(); a["adversarialResults"]=[{"id":"ATK-1","outcome":"RESISTED","required":True},{"id":"ATK-1","outcome":"RESISTED","required":True}]
+        self.assertEqual("INDETERMINATE",derive(a)[0])
