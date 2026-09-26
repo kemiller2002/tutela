@@ -34,6 +34,8 @@ jobs:
           for f in schemas/*.json examples/*.json assessments/*.json tests/fixtures/adversarial/*.json; do python -m json.tool "$f" >/dev/null; done
       - name: Test deterministic gate
         run: python -m unittest discover -s tests -v
+      - name: Verify adversarial orchestrator imports
+        run: PYTHONPATH=. python -c "from src.tutela_orchestrator import execute_campaign, evidence_record"
       - name: Set up Node.js for lifecycle smoke
         uses: actions/setup-node@v4
         with:
