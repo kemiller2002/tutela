@@ -23,6 +23,9 @@ jobs:
           test -f schemas/evidence.schema.json
           test -f schemas/security-assessment.schema.json
           test -f schemas/exception.schema.json
+          test -f schemas/adversarial-campaign.schema.json
+          test -f schemas/adversarial-authorization.schema.json
+          test -f schemas/adversarial-result.schema.json
           test -f docs/RESULTS-UI.md
           python -m json.tool .echelon/tutela.json >/dev/null
           python -m json.tool security/PROVENANCE-AUTHORITY.json >/dev/null
