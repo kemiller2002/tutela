@@ -1,18 +1,15 @@
 {
- "$schema":"https://json-schema.org/draft/2020-12/schema",
- "title":"Tutela Adversarial Campaign Result",
- "type":"object",
- "required":["schemaVersion","campaignId","subject","environment","observedAt","authorizationRef","results","unknownCoverage","budget","resultDigest"],
+ "$schema":"https://json-schema.org/draft/2020-12/schema","title":"Tutela Adversarial Campaign Bundle","type":"object",
+ "required":["schemaVersion","campaignId","subject","environment","observedAt","authorizationRef","results","unknownCoverage","limitations","bundleDigest"],
  "properties":{
-  "schemaVersion":{"const":1},"campaignId":{"type":"string"},"subject":{"type":"object"},
-  "environment":{"type":"string"},"observedAt":{"type":"string","format":"date-time"},
-  "authorizationRef":{"type":"string"},
-  "results":{"type":"array","items":{"type":"object","required":["id","category","expectedInvariants","outcome","attempts","limitations"],
-    "properties":{"id":{"type":"string"},"category":{"type":"string"},"expectedInvariants":{"type":"array","items":{"type":"string"}},
-    "outcome":{"enum":["RESISTED","DEGRADED_SAFE","VIOLATED","INDETERMINATE"]},"attempts":{"type":"array","items":{"type":"object"}},
-    "limitations":{"type":"array","items":{"type":"string"}}},"additionalProperties":false}},
-  "unknownCoverage":{"type":"array","items":{"type":"string"}},
-  "budget":{"type":"object","required":["maxScenarios","maxAttemptsPerScenario","maxTotalAttempts","attemptsUsed"]},
-  "resultDigest":{"type":"object","required":["algorithm","value"],"properties":{"algorithm":{"const":"sha256"},"value":{"type":"string","minLength":64}},"additionalProperties":false}
- }, "additionalProperties":false
+  "schemaVersion":{"const":1},"campaignId":{"type":"string","minLength":1},
+  "subject":{"type":"object","required":["repository","ref"],"properties":{"repository":{"type":"string"},"ref":{"type":"string"},"artifactDigest":{"type":"string"}},"additionalProperties":false},
+  "environment":{"type":"string"},"observedAt":{"type":"string","format":"date-time"},"authorizationRef":{"type":"string"},
+  "results":{"type":"array","items":{"type":"object","required":["id","category","capability","expectedInvariants","outcome","observation","limitations"],
+   "properties":{"id":{"type":"string"},"category":{"type":["string","null"]},"capability":{"enum":["http","concurrency","dependencyFault","resourcePressure","invalid"]},
+   "expectedInvariants":{"type":"array","items":{"type":"string"}},"outcome":{"enum":["RESISTED","DEGRADED_SAFE","VIOLATED","INDETERMINATE"]},
+   "observation":{"type":"object"},"limitations":{"type":"array","items":{"type":"string"}}},"additionalProperties":false}},
+  "unknownCoverage":{"type":"array","items":{"type":"string"}},"limitations":{"type":"array","items":{"type":"string"}},
+  "bundleDigest":{"type":"object","required":["algorithm","value"],"properties":{"algorithm":{"const":"sha256"},"value":{"type":"string","minLength":64}},"additionalProperties":false}
+ },"additionalProperties":false
 }
