@@ -2,7 +2,7 @@ import unittest
 import json
 from pathlib import Path
 from datetime import datetime, timezone
-from src.tutela_gate import derive, validate
+from src.tutela_gate import derive, validate, registered_roles
 
 def assessment(state="Verified", evidence=None, unknown=None, exceptions=None):
     return {"schemaVersion":1,"subject":{"repository":"x/y","ref":"abc123"},"posture":"PASS",
