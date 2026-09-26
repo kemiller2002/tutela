@@ -21,11 +21,11 @@ def load_role_registry(path=None):
     return json.loads(Path(path or DEFAULT_ROLE_REGISTRY).read_text())
 
 def identity_binding_valid(identity):
-    return (isinstance(identity,dict)
-        and identity.get("provider")
-        and str(identity.get("subjectId","")).isdigit()
-        and identity.get("bindingVerified") is True
-        and identity.get("bindingEvidence"))
+    if not (isinstance(identity,dict) and identity.get("provider") and str(identity.get("subjectId","")).isdigit() and identity.get("bindingVerified") is True): return False
+    evidence=identity.get("bindingEvidence") or []
+    if identity.get("provider")=="github":
+        return any(isinstance(e,dict) and e.get("kind")=="platform-api-observation" and e.get("issuer")=="github" and e.get("sourceRef") and e.get("observedAt") for e in evidence)
+    return False
 
 def registered_roles(identity, registry, at=None):
     at=at or now_utc(); roles=set()
