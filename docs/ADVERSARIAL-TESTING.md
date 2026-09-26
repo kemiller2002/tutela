@@ -41,3 +41,14 @@ A VIOLATED outcome maps to a Tutela finding/invariant result as appropriate. IND
 ## Longitudinal metrics
 
 Praxis/Dokimos may track counts and trends such as recurring violations, time-to-recovery, regression/resurfacing, campaign coverage, and evidence age. They MUST preserve the underlying states and MUST NOT present a composite "security score".
+
+
+## HTTP/API adapter
+
+The first execution adapter uses declarative HTTP requests. An authorization artifact supplies exact allowed origins; the adapter refuses any other origin. Methods, request bytes, response bytes, timeout and campaign attempts are bounded.
+
+The adapter records response status, bounded byte count, truncation state, response digest and redacted headers. It does not preserve response bodies by default. Authorization, cookie, set-cookie and proxy-authorization header values are redacted.
+
+HTTP expectations are invariant observations rather than generic exploit success. A scenario declares acceptable status values and, where meaningful, explicit status values that demonstrate a violated invariant. An unexpected response that has not been declared to prove a violation remains INDETERMINATE rather than being guessed into PASS or FAIL.
+
+Initial campaign patterns SHOULD cover negative authentication, negative authorization/isolation, validation/error behavior, replay/idempotency and information-leakage observations. Concurrency, dependency fault injection and resource-pressure adapters remain separate capabilities because they require additional execution budgets and safety controls.
