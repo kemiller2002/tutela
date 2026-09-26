@@ -39,7 +39,8 @@
           "outcome":{"enum":["RESISTED","DEGRADED_SAFE","VIOLATED","INDETERMINATE","NOT_RUN"]},
           "evidence":{"type":"array","items":{"type":"string"}},
           "findings":{"type":"array","items":{"type":"string"}},
-          "limitations":{"type":"array","items":{"type":"string"}}
+          "limitations":{"type":"array","items":{"type":"string"}},
+          "attempts":{"type":"integer","minimum":1,"maximum":3}
         },
         "additionalProperties":false
       }
