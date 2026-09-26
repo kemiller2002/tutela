@@ -52,3 +52,14 @@ The adapter records response status, bounded byte count, truncation state, respo
 HTTP expectations are invariant observations rather than generic exploit success. A scenario declares acceptable status values and, where meaningful, explicit status values that demonstrate a violated invariant. An unexpected response that has not been declared to prove a violation remains INDETERMINATE rather than being guessed into PASS or FAIL.
 
 Initial campaign patterns SHOULD cover negative authentication, negative authorization/isolation, validation/error behavior, replay/idempotency and information-leakage observations. Concurrency, dependency fault injection and resource-pressure adapters remain separate capabilities because they require additional execution budgets and safety controls.
+
+
+## Bounded concurrency, dependency faults and resource pressure
+
+Concurrency/replay execution is a separate adapter with independent worker and operation ceilings. It can wrap an already-authorized operation and aggregates observations without converting missing evidence into resistance.
+
+Dependency fault injection accepts only an explicitly marked Tutela test double. Initial fault classes are timeout, unavailable, malformed response, stale response and duplicate response. This adapter cannot disrupt a real dependency.
+
+Resource-pressure testing is synthetic and local. A supplied probe receives bounded units and iterations; the adapter itself creates no network load. Applications can use the probe boundary to exercise queue limits, allocation policies, backpressure, admission control or similar behavior in an isolated test environment.
+
+These boundaries are intentional. Real infrastructure chaos, load generation or production fault injection require a distinct future capability with stronger authorization, environment isolation, abort controls and evidence requirements.
