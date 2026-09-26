@@ -36,3 +36,12 @@ Filter by domain/state/severity/evidence age/boundary; stable-ID search; shareab
 
 ## Folio print structure
 Cover/posture; scope; blockers; invariant matrix; threats/findings; unknowns; exceptions; evidence index; methodology/limitations; immutable release identity.
+
+
+## Adversarial campaign view
+- Campaign header: immutable subject, authorized environment, scope, execution time and limitations.
+- Outcome matrix: RESISTED / DEGRADED_SAFE / VIOLATED / INDETERMINATE / NOT_RUN counts, explicitly descriptive and never a score.
+- Attack-family coverage: input, authentication, authorization, state, protocol, resource, dependency, concurrency, information, recovery, and agent/AI where applicable.
+- Scenario drill-down: attack -> expected invariant -> observation -> state/data impact -> recovery -> evidence.
+- Unknown coverage panel: planned but unrun, indeterminate, omitted relevant surfaces and scenario limitations.
+- Regression/trend panel: previously fixed attacks resurfacing, recurring violations, recovery-time change and evidence aging.
