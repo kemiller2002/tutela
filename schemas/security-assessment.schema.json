@@ -63,6 +63,24 @@
         "type": "string"
       }
     },
+    "adversarialResults": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id","outcome","required"],
+        "properties": {
+          "id": {"type":"string","minLength":1},
+          "campaignId": {"type":"string"},
+          "outcome": {"enum":["RESISTED","DEGRADED_SAFE","VIOLATED","INDETERMINATE","NOT_RUN"]},
+          "required": {"type":"boolean"},
+          "expectedInvariants": {"type":"array","items":{"type":"string"}},
+          "evidence": {"type":"array","items":{"type":"string"}},
+          "recovery": {"type":"string"},
+          "limitations": {"type":"array","items":{"type":"string"}}
+        },
+        "additionalProperties": false
+      }
+    },
     "invariantResults": {
       "type": "array",
       "items": {
