@@ -144,3 +144,30 @@ TUT-1704 Printable/PDF/paginated Security Evidence Records, posture reports, fin
 TUT-1705 Forma owns interactive presentation; Folio owns reusable document/print intent; Aegis owns unexpected operational-fault capture; Tutela owns security meaning, evidence interpretation, invariants, findings, exceptions, and posture.
 
 TUT-1706 Shared dependencies MUST be pinned to released versions or immutable artifacts. A shared capability gap MUST be recorded in the owning shared repository rather than silently forked inside Tutela.
+
+## Praxis contribution provenance
+
+Praxis owns the agent identity and provenance model (Praxis DF-ROS-2026-A036, DF-ROS-2026-A037). Tutela carries it; it does not redefine it. On Tutela evidence, `provenance` already means issuer/run attestation, so Praxis contribution provenance is carried under the separate field `contributionProvenance`.
+
+TUT-1707 Evidence records and security assessments MAY carry `contributionProvenance`: a Praxis `praxis.provenance/1` interchange block (Praxis RQ-ROS-2026-A015, DF-ROS-2026-A037) stating who reports having discovered, remediated, measured, validated, reviewed or transformed the subject, and in which execution. Tutela MUST NOT redefine actor, execution, contribution, operation or unknown semantics, and MUST NOT copy-and-modify the Praxis schemas; it references unchanged vendored copies recorded with source commit and SHA-256.
+
+TUT-1708 `contributionProvenance` is self-reported and non-authoritative (Praxis RQ-ROS-2026-A010, RQ-ROS-2026-A019). It MUST NOT satisfy, substitute for, or influence `producerIdentity`, evidence `provenance` (issuer/run attestation), evidence authority (security/PROVENANCE-AUTHORITY.json), identity bindings, approver or verifier identity, role membership or authorization (security/ROLE-REGISTRY.json), verifier independence (TUT-0006, TUT-1006), or evidence weight. The derived posture and every gate reason MUST be identical with and without it, including when it claims that a registered approver or verifier acted; the only permitted effect is the existing fail-closed sensitive-field check over evidence, which can lower posture but never raise it. It MAY satisfy the descriptive recording part of TUT-0706 (actor/model/tool) but never its corroboration part.
+
+TUT-1709 A received block MUST be classified with the Praxis receiving rules (Praxis RQ-ROS-2026-A015): `supported` blocks MUST be preserved verbatim, including unknown fields and tolerated unknown operation codes; a block of another major version (`unsupported`) MUST be preserved verbatim and MUST NOT be interpreted or appended to; a `malformed` block MUST make the carrying record invalid and MUST be rejected before any record is written, never dropped or repaired silently. Records without `contributionProvenance` remain valid and read as unattributed; nothing is inferred or backfilled (TUT-1603).
+
+TUT-1710 `contributionProvenance` MUST NOT carry secrets (Praxis RQ-ROS-2026-A017, TUT-0103, TUT-0401). Any credential-like value anywhere in the block, including in an unsupported major version, makes it malformed.
+
+TUT-1711 Integrations that supply `contributionProvenance` (for example the Aegis `tutela/evidence/v1` projection) MUST have it preserved verbatim (TUT-1403, TUT-1408). Tutela MUST NOT re-attribute a contribution, replace an originator, or overwrite the original actor with the transporting actor; any appending MUST follow the Praxis append-only rules (Praxis RQ-ROS-2026-A004, RQ-ROS-2026-A015).
+
+TUT-1712 The Tutela codec MUST reach the reference verdict and warning count for every vendored Praxis conformance case and replay the Echelon end-to-end chain (Praxis RQ-ROS-2026-A018). Adding `contributionProvenance` to the machine schemas MUST be additive and optional so existing documents stay valid (TUT-1604). Because `schemas/evidence.schema.json` and `schemas/security-assessment.schema.json` are protected trust-root paths, that schema change requires independent approval evidence before release (TUT-0006, TUT-0707, TUT-1602).
+
+### Traceability
+
+| Requirement | Implementation | Verification |
+|---|---|---|
+| TUT-1707 | `schemas/evidence.schema.json` `$defs/contributionProvenance`; `schemas/security-assessment.schema.json` `contributionProvenance`; `schemas/vendor/praxis/` (+ `SOURCE.json`) | `tests/test_tutela_contribution_provenance.py` (VendoredSourceTests, TutelaBoundaryTests) |
+| TUT-1708 | Gate unchanged: `src/tutela_gate.py` makes no decision from the field (only its existing fail-closed sensitive-field scan sees it); `src/tutela_contribution_provenance.py` performs no identity, role or authority decision | `tests/test_tutela_gate_contribution_provenance.py`; `tests/fixtures/adversarial/self-reported-approver-provenance.json` |
+| TUT-1709 | `src/tutela_contribution_provenance.py` (`classify`, `accept`, `attach`, `read`, `record_problems`, `assessment_problems`); `src/tutela_evidence.py --contribution-provenance` | `tests/test_tutela_contribution_provenance.py` (ConformanceTests, TutelaBoundaryTests, EvidenceBuilderTests) |
+| TUT-1710 | `src/tutela_contribution_provenance.py` credential tripwire | `tests/test_tutela_contribution_provenance.py` (`test_credentials_are_never_carried`, credential cases) |
+| TUT-1711 | `src/tutela_contribution_provenance.py` (`append_contribution`, `preservation_violations`); `docs/INTEGRATIONS.md` Aegis | `tests/test_tutela_contribution_provenance.py` (AppendingTests, EchelonChainTests) |
+| TUT-1712 | `tests/fixtures/praxis-provenance/` (+ `SOURCE.json`); `docs/INTEGRATIONS.md` pending trust-root change | `tests/test_tutela_contribution_provenance.py` (all 40 cases, chain replay, SHA-256 checks) |
