@@ -45,3 +45,13 @@ Cover/posture; scope; blockers; invariant matrix; threats/findings; unknowns; ex
 - Scenario drill-down: attack -> expected invariant -> observation -> state/data impact -> recovery -> evidence.
 - Unknown coverage panel: planned but unrun, indeterminate, omitted relevant surfaces and scenario limitations.
 - Regression/trend panel: previously fixed attacks resurfacing, recurring violations, recovery-time change and evidence aging.
+
+
+### Release-posture integration
+Required adversarial outcomes participate directly in the deterministic gate:
+- VIOLATED is a release blocker unless covered by a valid explicit exception.
+- INDETERMINATE and NOT_RUN are unresolved required knowledge and produce INDETERMINATE posture unless covered by a valid explicit exception.
+- RESISTED and DEGRADED_SAFE do not independently lower posture and do not establish security outside the tested invariants.
+- Optional NOT_RUN/INDETERMINATE coverage remains visible in the adversarial view but does not become a release blocker merely by being optional.
+
+The presentation projection exposes outcome counts, required blockers, required unknowns, invariant/evidence references, recovery and limitations. UI implementations MUST preserve these distinct states rather than reducing them to pass/fail or a numeric score.
