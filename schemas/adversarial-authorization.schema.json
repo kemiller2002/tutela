@@ -13,6 +13,7 @@
     "production":{"const":false},
     "authorizedBy":{"type":"string","minLength":1},
     "scope":{"type":"array","items":{"type":"string"},"minItems":1},
+    "allowedOrigins":{"type":"array","items":{"type":"string","pattern":"^https?://"},"minItems":1},
     "expiresAt":{"type":"string","format":"date-time"}
   },
   "additionalProperties":false
