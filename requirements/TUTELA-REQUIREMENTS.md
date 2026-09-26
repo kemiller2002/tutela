@@ -144,3 +144,20 @@ TUT-1704 Printable/PDF/paginated Security Evidence Records, posture reports, fin
 TUT-1705 Forma owns interactive presentation; Folio owns reusable document/print intent; Aegis owns unexpected operational-fault capture; Tutela owns security meaning, evidence interpretation, invariants, findings, exceptions, and posture.
 
 TUT-1706 Shared dependencies MUST be pinned to released versions or immutable artifacts. A shared capability gap MUST be recorded in the owning shared repository rather than silently forked inside Tutela.
+
+
+## Adversarial application testing
+
+TUT-1801 Authorized adversarial campaigns MUST bind to an immutable subject ref, explicit scope, and execution environment.
+TUT-1802 Attack scenarios MUST record preconditions, attack action, expected security invariants, observed behavior, state impact, data impact, recovery behavior, outcome, and evidence.
+TUT-1803 Scenario outcomes MUST be RESISTED, DEGRADED_SAFE, VIOLATED, INDETERMINATE, or NOT_RUN; these descriptive outcomes MUST NOT replace release posture or become a composite security score.
+TUT-1804 Campaign planning MUST consider, where applicable, hostile input, authentication, authorization/isolation, state-transition abuse, protocol/API abuse, resource exhaustion, dependency failure/corruption, concurrency/replay, information leakage, recovery, and agent/tool abuse.
+TUT-1805 Relevant attack surface not exercised MUST be recorded as negative knowledge; omission MUST NOT be interpreted as resistance.
+TUT-1806 Ordo/SDE subjects MUST adversarially exercise forbidden transitions, stale versions, replayed/reordered commands, contradictory evidence, missing capabilities, duplicate effects, and concurrency where applicable.
+TUT-1807 Resource-exhaustion, destructive, credential, or third-party-impacting attacks MUST use an explicitly authorized bounded environment and MUST NOT implicitly target production.
+TUT-1808 VIOLATED campaign results MUST trace to findings and/or violated invariants. Required INDETERMINATE or NOT_RUN coverage MUST remain unresolved security knowledge.
+TUT-1809 DEGRADED_SAFE MUST identify which invariants remained preserved and MUST record recovery behavior; availability degradation alone MUST NOT be reported as invariant failure when integrity/authorization invariants hold.
+TUT-1810 Campaign evidence SHOULD preserve reproducibility inputs or generator seed, tool/harness identity, timestamps, environment, immutable subject identity, observations, and safe logs/traces.
+TUT-1811 Fixed adversarial findings SHOULD become regression scenarios so resurfacing can be detected longitudinally.
+TUT-1812 Praxis/Dokimos integrations MAY track campaign coverage, recurrence, resurfacing, recovery time, and evidence age, but MUST retain underlying states and MUST NOT emit a misleading single security score.
+TUT-1813 The results UI MUST expose campaign scope, scenario outcomes, violated/preserved invariants, recovery behavior, evidence, limitations, and untested attack surface with unknowns at equal prominence to findings.
