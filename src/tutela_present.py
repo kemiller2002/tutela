@@ -17,9 +17,19 @@ def project(a):
           "requiresIndependentVerification":bool(x.get("requiresIndependentVerification")),
           "evidenceProvenance":[{"id":eid,"producer":evidence.get(eid,{}).get("producer"),"observedAt":evidence.get(eid,{}).get("observedAt"),
             "artifactDigest":evidence.get(eid,{}).get("artifactDigest"),"provenance":evidence.get(eid,{}).get("provenance")} for eid in x.get("evidence",[])]})
+    adversarial=[]
+    for x in a.get("adversarialResults",[]):
+        adversarial.append({"id":x.get("id"),"campaignId":x.get("campaignId"),"outcome":x.get("outcome"),
+          "required":x.get("required",True),"expectedInvariants":x.get("expectedInvariants",[]),
+          "evidence":x.get("evidence",[]),"recovery":x.get("recovery"),"limitations":x.get("limitations",[])})
+    adversarial_summary={name:sum(1 for x in adversarial if x.get("outcome")==name)
+      for name in ("RESISTED","DEGRADED_SAFE","VIOLATED","INDETERMINATE","NOT_RUN")}
     return {"schemaVersion":1,"assessmentId":a.get("assessmentId"),"subject":a.get("subject"),"posture":posture,
       "reasons":reasons,"scope":a.get("scope",[]),"invariants":invariants,"unknownSecurityEffects":a.get("unknownSecurityEffects",[]),
       "exceptions":a.get("exceptions",[]),"limitations":a.get("limitations",[]),
+      "adversarial":{"summary":adversarial_summary,"results":adversarial,
+        "requiredBlockers":[x["id"] for x in adversarial if x.get("required") and x.get("outcome")=="VIOLATED"],
+        "requiredUnknowns":[x["id"] for x in adversarial if x.get("required") and x.get("outcome") in {"INDETERMINATE","NOT_RUN"}]},
       "qualification":"This posture describes the defined scope and evidence. It is not a general claim that the system is secure."}
 
 def main():

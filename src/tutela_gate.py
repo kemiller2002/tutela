@@ -149,6 +149,21 @@ def validate(a, authority_policy=None, trust_policy=None, role_registry=None, at
                         errors.append(f"{iid or p} verifier is not independent of implementer")
                 if not independent:
                     errors.append(f"{iid or p} requires an independent verifier attestation")
+    adversarial_items=a.get("adversarialResults",[])
+    if not isinstance(adversarial_items,list):
+        errors.append("adversarialResults must be an array when supplied")
+    else:
+        seen_adversarial=set()
+        for i,x in enumerate(adversarial_items):
+            p=f"adversarialResults[{i}]"
+            if not isinstance(x,dict): errors.append(f"{p} must be an object"); continue
+            aid=x.get("id")
+            if not aid: errors.append(f"{p}.id is required")
+            elif aid in seen_adversarial: errors.append(f"duplicate adversarial result id {aid}")
+            else: seen_adversarial.add(aid)
+            if x.get("outcome") not in {"RESISTED","DEGRADED_SAFE","VIOLATED","INDETERMINATE","NOT_RUN"}:
+                errors.append(f"{aid or p}.outcome is invalid")
+            if not isinstance(x.get("required"),bool): errors.append(f"{aid or p}.required must be boolean")
     evidence_items=a.get("evidence",[])
     if not isinstance(evidence_items,list): errors.append("evidence must be an array when supplied")
     else:
@@ -228,6 +243,9 @@ def derive(a, at=None, authority_policy=None, trust_policy=None, role_registry=N
         if x.get("state")=="Verified" and any(eid in derived_stale for eid in x.get("evidence",[])):
             return "INDETERMINATE", [f"{x['id']} relies on stale or invalidated evidence"]
     unknown_effects=a.get("unknownSecurityEffects",[])
+    adversarial=a.get("adversarialResults",[])
+    adversarial_violated=[f"adversarial:{x.get('id','unknown')}" for x in adversarial if x.get("required",True) and x.get("outcome")=="VIOLATED"]
+    adversarial_unknown=[f"adversarial:{x.get('id','unknown')}:{x.get('outcome')}" for x in adversarial if x.get("required",True) and x.get("outcome") in {"INDETERMINATE","NOT_RUN"}]
     violated=[x["id"] for x in inv if x["state"]=="Violated"]
     unknown=[x["id"] for x in inv if x["state"]=="Unknown"]
     stale=[x["id"] for x in inv if x["state"]=="Stale"]
@@ -235,9 +253,9 @@ def derive(a, at=None, authority_policy=None, trust_policy=None, role_registry=N
     exceptions=valid_exceptions(a,at)
     accepted=set()
     for e in exceptions: accepted.update(e.get("covers",[]))
-    hard=[x for x in violated+unknown_effects if x not in accepted]
+    hard=[x for x in violated+unknown_effects+adversarial_violated if x not in accepted]
     if hard: return "BLOCKED", hard
-    indeterminate=[x for x in unknown+stale+missing if x not in accepted]
+    indeterminate=[x for x in unknown+stale+missing+adversarial_unknown if x not in accepted]
     if indeterminate: return "INDETERMINATE", indeterminate
     if exceptions: return "CONDITIONAL", [e["id"] for e in exceptions]
     return "PASS", []

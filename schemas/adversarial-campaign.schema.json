@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Tutela Adversarial Campaign",
+  "type": "object",
+  "required": ["schemaVersion","id","subject","scope","environment","scenarios","unknownCoverage"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "id": {"type":"string","minLength":1},
+    "subject": {
+      "type":"object",
+      "required":["repository","ref"],
+      "properties":{
+        "repository":{"type":"string","minLength":1},
+        "ref":{"type":"string","minLength":1},
+        "artifactDigest":{"type":"string"}
+      },
+      "additionalProperties":false
+    },
+    "scope":{"type":"array","items":{"type":"string"},"minItems":1},
+    "environment":{"type":"string","minLength":1},
+    "startedAt":{"type":"string","format":"date-time"},
+    "completedAt":{"type":"string","format":"date-time"},
+    "scenarios":{
+      "type":"array",
+      "items":{
+        "type":"object",
+        "required":["id","category","target","preconditions","attack","expectedInvariants","observed","stateImpact","dataImpact","recovery","outcome","evidence"],
+        "properties":{
+          "id":{"type":"string","minLength":1},
+          "category":{"enum":["input","authentication","authorization","state","protocol","resource","dependency","concurrency","information","recovery","agent-ai","custom"]},
+          "target":{"type":"string","minLength":1},
+          "preconditions":{"type":"array","items":{"type":"string"}},
+          "attack":{"type":"string","minLength":1},
+          "expectedInvariants":{"type":"array","items":{"type":"string"},"minItems":1},
+          "observed":{"type":"string","minLength":1},
+          "stateImpact":{"type":"string","minLength":1},
+          "dataImpact":{"type":"string","minLength":1},
+          "recovery":{"type":"string","minLength":1},
+          "outcome":{"enum":["RESISTED","DEGRADED_SAFE","VIOLATED","INDETERMINATE","NOT_RUN"]},
+          "evidence":{"type":"array","items":{"type":"string"}},
+          "findings":{"type":"array","items":{"type":"string"}},
+          "limitations":{"type":"array","items":{"type":"string"}},
+          "attempts":{"type":"integer","minimum":1,"maximum":3},
+          "http":{"type":"object","required":["url"],"properties":{
+            "url":{"type":"string","pattern":"^https?://"},
+            "method":{"enum":["GET","POST","PUT","PATCH","DELETE","HEAD","OPTIONS"]},
+            "headers":{"type":"object","additionalProperties":{"type":"string"}},
+            "body":{"type":"string","maxLength":65536}
+          },"additionalProperties":false},
+          "concurrency":{"type":"object","required":["workers","operations"],"properties":{
+            "workers":{"type":"integer","minimum":1,"maximum":4},
+            "operations":{"type":"integer","minimum":1,"maximum":12}
+          },"additionalProperties":false},
+          "dependencyFault":{"type":"object","required":["kind","count"],"properties":{
+            "kind":{"enum":["timeout","unavailable","malformed-response","stale-response","duplicate-response"]},
+            "count":{"type":"integer","minimum":1,"maximum":5}
+          },"additionalProperties":false},
+          "resourcePressure":{"type":"object","required":["units","iterations"],"properties":{
+            "units":{"type":"integer","minimum":1,"maximum":10000},
+            "iterations":{"type":"integer","minimum":1,"maximum":100}
+          },"additionalProperties":false},
+          "operation":{"type":"object","properties":{
+            "http":{"type":"object","required":["url"],"properties":{
+              "url":{"type":"string","pattern":"^https?://"},
+              "method":{"enum":["GET","POST","PUT","PATCH","DELETE","HEAD","OPTIONS"]},
+              "headers":{"type":"object","additionalProperties":{"type":"string"}},
+              "body":{"type":"string","maxLength":65536}
+            },"additionalProperties":false},
+            "expect":{"type":"object","properties":{
+              "status":{"type":"array","items":{"type":"integer","minimum":100,"maximum":599}},
+              "violationStatus":{"type":"array","items":{"type":"integer","minimum":100,"maximum":599}}
+            },"additionalProperties":false}
+          },"additionalProperties":false},
+          "expect":{"type":"object","properties":{
+            "status":{"type":"array","items":{"type":"integer","minimum":100,"maximum":599}},
+            "violationStatus":{"type":"array","items":{"type":"integer","minimum":100,"maximum":599}}
+          },"additionalProperties":false}
+        },
+        "additionalProperties":false
+      }
+    },
+    "unknownCoverage":{"type":"array","items":{"type":"string"}},
+    "limitations":{"type":"array","items":{"type":"string"}}
+  },
+  "additionalProperties":false
+}
