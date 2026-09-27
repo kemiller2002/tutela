@@ -2,7 +2,7 @@
 """Non-destructive Tutela bootstrap for another repository."""
 from __future__ import annotations
 import argparse, json
-from pathlib import Path
+from pathlib import Path\n\nTUTELA_VERSION="0.2.0"\nINSTALL_SCHEMA_VERSION=1
 
 def templates(repository, ref):
     assessment={"schemaVersion":1,"subject":{"repository":repository,"ref":ref},"posture":"INDETERMINATE",
