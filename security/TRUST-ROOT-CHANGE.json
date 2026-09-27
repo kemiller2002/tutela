@@ -1,14 +1,15 @@
 {
   "schemaVersion": 1,
   "id": "tutela-trust-root-change",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "protectedPaths": [
     "security/PROVENANCE-AUTHORITY.json",
     "security/TRUST-ROOT-CHANGE.json",
     "src/tutela_gate.py",
     "schemas/evidence.schema.json",
     "schemas/security-assessment.schema.json",
-    "security/ROLE-REGISTRY.json"
+    "security/ROLE-REGISTRY.json",
+    "src/tutela_trust_root.py"
   ],
   "requirements": {
     "changeId": true,
@@ -54,5 +55,11 @@
         "human"
       ]
     }
-  ]
+  ],
+  "transitionRecord": {
+    "directory": "security/transitions",
+    "digestAlgorithm": "sha256",
+    "pathCoverage": "exact",
+    "baseAndHeadContentBinding": true
+  }
 }
