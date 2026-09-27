@@ -144,3 +144,20 @@ TUT-1704 Printable/PDF/paginated Security Evidence Records, posture reports, fin
 TUT-1705 Forma owns interactive presentation; Folio owns reusable document/print intent; Aegis owns unexpected operational-fault capture; Tutela owns security meaning, evidence interpretation, invariants, findings, exceptions, and posture.
 
 TUT-1706 Shared dependencies MUST be pinned to released versions or immutable artifacts. A shared capability gap MUST be recorded in the owning shared repository rather than silently forked inside Tutela.
+
+
+## Implementation language and Ordo governance
+
+TUT-1801 All Tutela production, domain, CLI, gate, verification, migration, and operational code MUST be implemented in F#.
+
+TUT-1802 Tutela implementation work MUST follow Ordo/SDE state, transition, capability, obligation, evidence, unknown-effect, and negative-knowledge semantics. Implementation MUST NOT bypass Ordo merely because an equivalent behavior already exists in another language.
+
+TUT-1803 Non-F# executable implementations MAY exist only as explicitly temporary migration/conformance fixtures. They MUST NOT remain an independent production authority or a second source of truth.
+
+TUT-1804 The current Python reference implementation MUST be migrated to an authoritative F# implementation. During migration, Python behavior MAY serve as a conformance oracle until equivalent F# behavior has evidence. Once migrated and verified, production execution and CI authority MUST use the F# implementation.
+
+TUT-1805 F# domain models SHOULD make illegal security states unrepresentable where practical, including posture, invariant state, digest algorithms, identity bindings, authorization decisions, evidence state, and trust-root transitions.
+
+TUT-1806 External effects such as Git, filesystem, GitHub, clocks, and process execution MUST be explicit boundary capabilities rather than hidden inside domain decision logic.
+
+TUT-1807 Migration from a non-F# implementation MUST preserve or strengthen existing adversarial tests, fail-closed behavior, provenance, and negative knowledge. A migration MUST NOT silently reduce security coverage.
