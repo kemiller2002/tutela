@@ -57,6 +57,11 @@ def approval_authorized(approval, trust_policy, role_registry, weakening=False, 
             return True
     return False
 
+def valid_digest(d):
+    if not isinstance(d,dict) or d.get("algorithm") not in {"sha256","sha512"}: return False
+    v=d.get("value",""); expected=64 if d.get("algorithm")=="sha256" else 128
+    return len(v)==expected and all(ch in "0123456789abcdefABCDEF" for ch in v)
+
 def validate_trust_root_change(change, trust_policy, role_registry, at=None):
     errors=[]
     if not change: return errors
@@ -65,6 +70,8 @@ def validate_trust_root_change(change, trust_policy, role_registry, at=None):
     if not (protected & touched): return errors
     for k in ("id","rationale","changedBy","changedByIdentity","previousDigest","newDigest"):
         if not change.get(k): errors.append(f"trustRootChange.{k} is required")
+    for name in ("previousDigest","newDigest"):
+        if change.get(name) and not valid_digest(change.get(name)): errors.append(f"trustRootChange.{name} must be an exact sha256/sha512 digest")
     if change.get("previousDigest")==change.get("newDigest") and change.get("previousDigest"):
         errors.append("trustRootChange digests must describe an actual transition")
     approvals=change.get("approvals") or []
@@ -163,7 +170,7 @@ def validate(a, authority_policy=None, trust_policy=None, role_registry=None, at
             for k in ("id","producer","producerIdentity","subjectRef","observedAt","artifactDigest","provenance"):
                 if not e.get(k): errors.append(f"{eid}.{k} is required")
             digest=e.get("artifactDigest") or {}
-            if isinstance(digest,dict) and digest and not (digest.get("algorithm") in {"sha256","sha512"} and digest.get("value") and len(digest.get("value","")) >= 64 and all(ch in "0123456789abcdefABCDEF" for ch in digest.get("value",""))):
+            if isinstance(digest,dict) and digest and not (digest.get("algorithm") in {"sha256","sha512"} and digest.get("value") and len(digest.get("value","")) == (64 if digest.get("algorithm")=="sha256" else 128) and all(ch in "0123456789abcdefABCDEF" for ch in digest.get("value",""))):
                 errors.append(f"{eid}.artifactDigest requires sha256/sha512 algorithm and value")
             provenance=e.get("provenance") or {}
             if isinstance(provenance,dict) and provenance and not (provenance.get("kind") and provenance.get("issuer") and provenance.get("runRef")):
