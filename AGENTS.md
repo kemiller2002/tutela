@@ -12,3 +12,6 @@ Tutela security work is adversarial, evidence-based, and fail-closed.
 8. Security exceptions require owner, rationale, scope, compensating controls, evidence, approval, and expiry.
 9. Prefer least privilege, explicit capabilities, deny-by-default transitions, minimal dependencies, and small trust boundaries.
 10. Follow Ordo/SDE and ROS without bypassing their state/evidence rules.
+11. All production/domain/executable Tutela code MUST be F#. Follow Ordo/SDE for requirements, legal state transitions, capabilities, obligations, evidence, unknown effects, and negative knowledge.
+12. Existing non-F# implementations are migration/conformance fixtures only. Do not add new production behavior to them except where required to preserve a conformance oracle during the F# migration.
+13. F# is the single implementation authority. CI MUST migrate to the F# implementation before legacy executable fixtures are retired.
