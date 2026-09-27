@@ -32,3 +32,20 @@ From a Tutela checkout, bootstrap a target repository with:
 The bootstrap is non-destructive by default. It creates a repository-local `.tutela/security-assessment.json`, starter adversarial coverage file, a pinned copy of the deterministic gate under `.tutela/runtime/`, and `.github/workflows/tutela-security.yml`. Existing files are preserved. `--force` is required to replace them.
 
 A new installation deliberately starts INDETERMINATE. The bootstrap records an unknown invariant and unresolved repository-specific security review. Adoption therefore cannot create a PASS merely by installing tooling. The repository must define its actual assets, boundaries, threats, invariants, evidence and adversarial coverage before its posture can improve.
+
+
+## Inspect and upgrade an installation
+
+A managed installation records `.tutela/install.json` with the Tutela version and explicit ownership boundaries. Inspect without changing the target repository:
+
+```sh
+./bin/tutela-upgrade /path/to/target
+```
+
+Apply a compatible upgrade:
+
+```sh
+./bin/tutela-upgrade /path/to/target --apply
+```
+
+Upgrades refresh only Tutela-owned runtime/workflow assets. Repository-owned assessment and adversarial campaign state are preserved and hash-checked. Unmanaged installations and unsupported manifest schemas are refused rather than guessed or destructively migrated.
