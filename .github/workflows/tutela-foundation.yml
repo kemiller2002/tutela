@@ -61,7 +61,15 @@ jobs:
             exit 1
           fi
           python src/tutela_trust_root.py --base "$base" --head HEAD --record "$record"
-      - name: Test deterministic gate
+      - name: Set up .NET for authoritative F# implementation
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build and test F# gate
+        run: |
+          dotnet build src/Tutela.Core/Tutela.Core.fsproj --configuration Release
+          dotnet run --project tests/Tutela.Core.Tests/Tutela.Core.Tests.fsproj --configuration Release
+      - name: Test Python conformance oracle
         run: python -m unittest discover -s tests -v
       - name: Set up Node.js for lifecycle smoke
         uses: actions/setup-node@v4
