@@ -1,0 +1,6 @@
+{
+ "schemaVersion":1,"id":"ADV-AUTH-SAFE-EXAMPLE-001","authorized":true,
+ "campaignId":"ADV-SAFE-EXAMPLE-001","subjectRef":"example-ref","environment":"local-test",
+ "production":false,"authorizedBy":"example-human-authorization","scope":["dependency recovery boundary"],
+ "allowedOrigins":["http://127.0.0.1:65535"]
+}

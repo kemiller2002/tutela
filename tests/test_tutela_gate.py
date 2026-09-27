@@ -217,3 +217,38 @@ class GateTests(unittest.TestCase):
         self.assertEqual(set(),registered_roles(identity,rr))
 
 if __name__=="__main__": unittest.main()
+
+
+class AdversarialGateTests(unittest.TestCase):
+    def base(self):
+        return {"schemaVersion":1,"subject":{"repository":"x/y","ref":"abc123"},"posture":"PASS",
+          "invariantResults":[{"id":"SEC-INV-001","state":"Verified","evidence":["SEC-EVD-001"]}],
+          "unknownSecurityEffects":[],"exceptions":[]}
+
+    def test_required_violation_blocks(self):
+        a=self.base(); a["adversarialResults"]=[{"id":"ATK-1","outcome":"VIOLATED","required":True}]
+        self.assertEqual("BLOCKED",derive(a)[0])
+
+    def test_required_indeterminate_is_indeterminate(self):
+        a=self.base(); a["adversarialResults"]=[{"id":"ATK-1","outcome":"INDETERMINATE","required":True}]
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_required_not_run_is_indeterminate(self):
+        a=self.base(); a["adversarialResults"]=[{"id":"ATK-1","outcome":"NOT_RUN","required":True}]
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_resisted_and_degraded_safe_do_not_lower_posture(self):
+        a=self.base(); a["adversarialResults"]=[{"id":"ATK-1","outcome":"RESISTED","required":True},{"id":"ATK-2","outcome":"DEGRADED_SAFE","required":True}]
+        self.assertEqual("PASS",derive(a)[0])
+
+    def test_optional_unrun_does_not_lower_posture(self):
+        a=self.base(); a["adversarialResults"]=[{"id":"ATK-1","outcome":"NOT_RUN","required":False}]
+        self.assertEqual("PASS",derive(a)[0])
+
+    def test_invalid_adversarial_outcome_fails_closed(self):
+        a=self.base(); a["adversarialResults"]=[{"id":"ATK-1","outcome":"MAGIC","required":True}]
+        self.assertEqual("INDETERMINATE",derive(a)[0])
+
+    def test_duplicate_adversarial_id_fails_closed(self):
+        a=self.base(); a["adversarialResults"]=[{"id":"ATK-1","outcome":"RESISTED","required":True},{"id":"ATK-1","outcome":"RESISTED","required":True}]
+        self.assertEqual("INDETERMINATE",derive(a)[0])

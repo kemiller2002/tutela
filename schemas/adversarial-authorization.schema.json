@@ -1,0 +1,20 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"Tutela Adversarial Execution Authorization",
+  "type":"object",
+  "required":["schemaVersion","id","authorized","campaignId","subjectRef","environment","production","authorizedBy","scope"],
+  "properties":{
+    "schemaVersion":{"const":1},
+    "id":{"type":"string","minLength":1},
+    "authorized":{"const":true},
+    "campaignId":{"type":"string","minLength":1},
+    "subjectRef":{"type":"string","minLength":1},
+    "environment":{"type":"string","minLength":1},
+    "production":{"const":false},
+    "authorizedBy":{"type":"string","minLength":1},
+    "scope":{"type":"array","items":{"type":"string"},"minItems":1},
+    "allowedOrigins":{"type":"array","items":{"type":"string","pattern":"^https?://"},"minItems":1},
+    "expiresAt":{"type":"string","format":"date-time"}
+  },
+  "additionalProperties":false
+}

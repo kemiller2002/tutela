@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "AC-REPLAY-0001",
+  "subject": {"repository":"example/app","ref":"0123456789abcdef"},
+  "scope": ["command replay handling"],
+  "environment": "isolated test",
+  "scenarios": [{
+    "id": "ATK-STATE-REPLAY-001",
+    "category": "state",
+    "target": "command transition boundary",
+    "preconditions": ["a previously accepted command is available for replay"],
+    "attack": "replay the same valid command after its effect has committed",
+    "expectedInvariants": ["INV-IDEMPOTENT-EFFECTS"],
+    "observed": "duplicate command rejected or resolved idempotently",
+    "stateImpact": "no additional legal-state transition",
+    "dataImpact": "no duplicate external effect",
+    "recovery": "none required",
+    "outcome": "RESISTED",
+    "evidence": ["evidence://runtime/replay-001"],
+    "findings": [],
+    "limitations": ["does not establish resistance to altered-command replay"]
+  }],
+  "unknownCoverage": ["concurrent replay was not exercised"],
+  "limitations": ["example artifact only; not evidence for a real release"]
+}
