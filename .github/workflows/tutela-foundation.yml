@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - name: Validate required Tutela artifacts
         shell: bash
         run: |
@@ -29,6 +31,36 @@ jobs:
           python -m json.tool security/TRUST-ROOT-CHANGE.json >/dev/null
           python -m json.tool security/ROLE-REGISTRY.json >/dev/null
           for f in schemas/*.json examples/*.json assessments/*.json tests/fixtures/adversarial/*.json; do python -m json.tool "$f" >/dev/null; done
+      - name: Detect protected trust-root changes
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            base="$PR_BASE_SHA"
+            git fetch --no-tags --depth=1 origin "$base"
+          else
+            base="$EVENT_BEFORE"
+          fi
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            echo "No comparable base SHA for this event."
+            exit 0
+          fi
+          protected="$(git diff --name-only "$base" HEAD | python -c 'import json,sys; p=json.load(open("security/TRUST-ROOT-CHANGE.json")); print(chr(10).join(sorted(set(x.strip() for x in sys.stdin if x.strip()) & set(p["protectedPaths"]))))')"
+          if [ -z "$protected" ]; then
+            echo "No protected trust-root paths changed."
+            exit 0
+          fi
+          record="$(git diff --name-only "$base" HEAD -- 'security/transitions/*.json' | tail -n 1)"
+          if [ -z "$record" ]; then
+            echo "Protected trust-root change has no transition record."
+            printf '%s\n' "$protected"
+            exit 1
+          fi
+          python src/tutela_trust_root.py --base "$base" --head HEAD --record "$record"
       - name: Test deterministic gate
         run: python -m unittest discover -s tests -v
       - name: Set up Node.js for lifecycle smoke
