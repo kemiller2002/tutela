@@ -95,3 +95,46 @@ module AuthorityPolicy =
             && rule.ProvenanceKinds.Contains evidence.Provenance.Kind
             && rule.Issuers.Contains evidence.Provenance.Issuer
             && rule.ProducerIdentityKinds.Contains evidence.ProducerIdentity.Kind)
+
+
+type IdentityKind = Human | Agent | Workflow
+
+type PlatformIdentity =
+    private
+    | GitHubIdentity of IdentityKind * uint64 * string option
+
+module PlatformIdentity =
+    let github kind subjectId login =
+        if subjectId = 0UL then Error "GitHub subject id must be a positive immutable numeric account id"
+        else Ok (GitHubIdentity(kind, subjectId, login))
+    let provider _ = "github"
+    let subjectId (GitHubIdentity(_,id,_)) = id
+    let kind (GitHubIdentity(k,_,_)) = k
+    let login (GitHubIdentity(_,_,login)) = login
+    let sameSubject a b = provider a = provider b && subjectId a = subjectId b
+
+type Role = SecurityReviewer | SecurityOwner
+
+type RoleMembership =
+    { Identity: PlatformIdentity
+      Roles: Set<Role>
+      ValidFrom: DateTimeOffset option
+      ValidUntil: DateTimeOffset option }
+
+type RoleRegistry =
+    private
+    | DenyByDefaultRoles of RoleMembership list
+
+module RoleRegistry =
+    let create defaultDecision memberships =
+        if defaultDecision <> "deny" then Error "security role registry must default deny"
+        else Ok (DenyByDefaultRoles memberships)
+
+    let rolesAt at identity (DenyByDefaultRoles memberships) =
+        memberships
+        |> List.filter (fun m ->
+            PlatformIdentity.sameSubject identity m.Identity
+            && (m.ValidFrom |> Option.forall (fun t -> t <= at))
+            && (m.ValidUntil |> Option.forall (fun t -> t > at)))
+        |> List.collect (fun m -> Set.toList m.Roles)
+        |> Set.ofList
