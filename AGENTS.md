@@ -15,3 +15,12 @@ Tutela security work is adversarial, evidence-based, and fail-closed.
 11. All production/domain/executable Tutela code MUST be F#. Follow Ordo/SDE for requirements, legal state transitions, capabilities, obligations, evidence, unknown effects, and negative knowledge.
 12. Existing non-F# implementations are migration/conformance fixtures only. Do not add new production behavior to them except where required to preserve a conformance oracle during the F# migration.
 13. F# is the single implementation authority. CI MUST migrate to the F# implementation before legacy executable fixtures are retired.
+
+## CI observation discipline
+
+- Keep incremental commits and pushes at coherent recovery boundaries.
+- Do not wait for remote CI after every push; continue independent in-scope work while CI batches or runs.
+- Inspect remote CI at the final implementation/security boundary by default.
+- Inspect it earlier when the result gates the next action, protects a security boundary, or is required for release.
+- Never treat queued, cancelled, unavailable, or unobserved CI as security evidence or as passing.
+- CI batching changes scheduling only. It MUST NOT weaken fail-closed security gates, evidence requirements, independent verification, or release posture.
