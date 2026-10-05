@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "id": "TR-2026-0001",
+  "paths": [
+    "schemas/exception.schema.json",
+    "schemas/verification-result.schema.json",
+    "security/SENSITIVE-DATA-RULES.json",
+    "security/TRUST-ROOT-CHANGE.json",
+    "src/Tutela.Cli/Program.fs",
+    "src/Tutela.Core/Domain.fs",
+    "src/Tutela.Core/Exceptions.fs",
+    "src/Tutela.Core/Gate.fs",
+    "src/Tutela.Core/Json.fs",
+    "src/Tutela.Core/Policy.fs",
+    "src/Tutela.Core/SensitiveData.fs",
+    "src/Tutela.Core/Validation.fs",
+    "src/Tutela.Core/Verification.fs",
+    "src/tutela_gate.py"
+  ],
+  "baseRef": "9fac1c106efde330910f89f1ae1137b3c0ddd29b",
+  "previousDigest": {
+    "algorithm": "sha256",
+    "value": "3bb224b9adb0e646a0b277bf071d721b84cb46cc690110e921c6be777a75a422"
+  },
+  "newDigest": {
+    "algorithm": "sha256",
+    "value": "790868fc8a33255e42209dcb9e89746868bd780f6acfc359d1543a97ec3fca38"
+  },
+  "rationale": "Quality remediation (security-gate integrity). Moves gate authority to the F# implementation and keeps Python as an expiring conformance oracle (docs/decisions/0001-gate-authority.md). Binds exception approval to the role registry: a verified human security-owner who is not the requester, within the exception's validity window. Introduces the canonical sensitive-data catalog, which the gate applies to evidence keys and values; this strengthens the gate by adding passwd, api-key and other spellings, and credential-shaped values. Publishes tutela.verification/1. Adds the F# gate files, catalog and schemas to protectedPaths.",
+  "weakening": false,
+  "weakeningAnalysis": "No protected rule is removed or relaxed. Behavior changes are all fail-closed: self-asserted exceptions no longer reach CONDITIONAL; more sensitive keys and values make evidence INDETERMINATE; and the F# authority returns INDETERMINATE or unavailable where the oracle would crash. The ROLE-REGISTRY and PROVENANCE-AUTHORITY policies are unchanged.",
+  "changedBy": "Claude Code implementation agent (Echelon quality-remediation, session_01CmPhre2cFonbHerxVSsmrL)",
+  "changedByIdentity": null,
+  "approvals": [
+    {
+      "approved": true,
+      "approvedAt": "2026-10-05T11:40:00Z",
+      "approverIdentity": {
+        "kind": "human",
+        "provider": "github",
+        "subjectId": "737074",
+        "login": "kemiller2002",
+        "bindingVerified": true,
+        "bindingEvidence": [
+          {
+            "kind": "platform-api-observation",
+            "issuer": "github",
+            "sourceRef": "github-api:/users/kemiller2002",
+            "observedAt": "2026-10-05T11:40:00Z"
+          }
+        ]
+      },
+      "role": "repository-owner",
+      "evidence": [
+        "Repository owner reviewed and approved PR kemiller2002/tutela#8."
+      ]
+    }
+  ],
+
+  "status": "approved-by-repository-owner",
+  "approvalRequired": "An independent security-owner or security-reviewer, recorded in security/ROLE-REGISTRY.json, must review this transition and add an approval with evidence before merge. The implementing agent cannot approve its own change (TUT-0006, AGENTS.md rules 3-4). The CI transition check verifies only paths and digests; it does not establish approval."
+}

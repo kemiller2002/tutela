@@ -32,9 +32,19 @@ class GateTests(unittest.TestCase):
     def test_contradiction_invalid(self):
         a=assessment(); a["invariantResults"][0]["contradictoryEvidence"]=["SEC-EVD-002"]
         self.assertEqual("INDETERMINATE",derive(a)[0])
-    def test_valid_exception_is_conditional(self):
+    def test_registry_approved_exception_is_conditional(self):
+        # TUT-1204: CONDITIONAL requires a valid human-approved exception; the
+        # approver's role comes from the registry, not from the assessment.
+        e={"id":"SEC-EXC-001","approver":"owner-1","approved":True,"createdAt":"2025-12-01T00:00:00Z","expiresAt":"2099-01-01T00:00:00Z",
+           "covers":["SEC-INV-001"],"rationale":"fix in flight","compensatingControls":["feature flag off"],"evidence":["SEC-EVD-001"],
+           "requestedByIdentity":bound_identity("agent","5001"),"approverIdentity":bound_identity("human","2001")}
+        rr=role_registry(membership("human","2001",["security-owner"]))
+        self.assertEqual("CONDITIONAL",derive(assessment("Violated",exceptions=[e]),datetime(2026,1,1,tzinfo=timezone.utc),role_registry=rr)[0])
+
+    def test_self_asserted_exception_does_not_downgrade_block(self):
+        # TUT-1103: approved:true written by the assessment author is a claim, not an approval.
         e={"id":"SEC-EXC-001","approver":"human","approved":True,"expiresAt":"2099-01-01T00:00:00Z","covers":["SEC-INV-001"]}
-        self.assertEqual("CONDITIONAL",derive(assessment("Violated",exceptions=[e]),datetime(2026,1,1,tzinfo=timezone.utc))[0])
+        self.assertEqual("BLOCKED",derive(assessment("Violated",exceptions=[e]),datetime(2026,1,1,tzinfo=timezone.utc))[0])
     def test_expired_exception_blocks(self):
         e={"id":"SEC-EXC-001","approver":"human","approved":True,"expiresAt":"2020-01-01T00:00:00Z","covers":["SEC-INV-001"]}
         self.assertEqual("BLOCKED",derive(assessment("Violated",exceptions=[e]),datetime(2026,1,1,tzinfo=timezone.utc))[0])

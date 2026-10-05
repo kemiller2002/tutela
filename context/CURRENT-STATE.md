@@ -6,9 +6,12 @@ Implemented:
 - normative security requirements and agent-security rules;
 - security lifecycle, self-security profile and integration contracts;
 - machine schemas for threats, invariants, evidence, assessments and exceptions;
-- deterministic dependency-free posture engine;
+- deterministic dependency-free posture engine; the F# gate (`src/Tutela.Core`, CLI `tutela`) is the CI authority, and the Python gate is an expiring conformance oracle (docs/decisions/0001-gate-authority.md);
+- exception approvals bound to the role registry: human security-owner, distinct from the requester, current;
+- versioned result contract `tutela.verification/1` and the canonical sensitive-data catalog `security/SENSITIVE-DATA-RULES.json` (docs/SECURITY-OWNERSHIP.md);
+- self secret scan, and a requirement-traceability ratchet (`tutela trace`), in CI;
 - semantic gate unit tests covering PASS, BLOCKED, INDETERMINATE, CONDITIONAL, stale/unknown state, contradictions, duplicate IDs and exception expiry;
-- CI execution of syntax validation, unit tests and declared-vs-derived example posture;
+- CI build of every project in `Tutela.sln` (CI fails if a project is missing from the solution), F# tests, F#/Python parity, and declared-vs-derived posture via the F# CLI;
 - results UI specification;
 - owning-repository integration requirements added to Forma, Folio, Aegis, Praxis and Conditor.
 

@@ -22,22 +22,13 @@ type InvariantResult =
       Evidence: EvidenceId list
       ContradictoryEvidence: EvidenceId list }
 
-type SecurityException =
-    { Id: string
-      Approved: bool
-      ExpiresAt: DateTimeOffset
-      Covers: Set<string> }
-
-type Assessment =
-    { Invariants: InvariantResult list
-      UnknownSecurityEffects: Set<string>
-      Exceptions: SecurityException list }
 
 type Derivation =
     { Posture: Posture
       Reasons: string list }
 
-type ValidationError = ValidationError of string
+/// A validation failure: the stable gate rule id and the reference-oracle message.
+type ValidationError = ValidationError of ruleId: string * message: string
 
 
 type DigestAlgorithm = Sha256 | Sha512
@@ -89,12 +80,17 @@ module AuthorityPolicy =
         if defaultDecision <> "deny" then Error "provenance authority policy must default deny"
         else Ok (DenyByDefault rules)
 
-    let authorizes evidence (DenyByDefault rules) =
+    /// Deny unless one rule names every attribute. A missing attribute never matches.
+    let authorizesRaw evidenceType provenanceKind issuer producerIdentityKind (DenyByDefault rules) =
+        let within (set: Set<string>) value = value |> Option.exists set.Contains
         rules |> List.exists (fun rule ->
-            rule.EvidenceTypes.Contains evidence.EvidenceType
-            && rule.ProvenanceKinds.Contains evidence.Provenance.Kind
-            && rule.Issuers.Contains evidence.Provenance.Issuer
-            && rule.ProducerIdentityKinds.Contains evidence.ProducerIdentity.Kind)
+            within rule.EvidenceTypes evidenceType
+            && within rule.ProvenanceKinds provenanceKind
+            && within rule.Issuers issuer
+            && within rule.ProducerIdentityKinds producerIdentityKind)
+
+    let authorizes evidence policy =
+        authorizesRaw (Some evidence.EvidenceType) (Some evidence.Provenance.Kind) (Some evidence.Provenance.Issuer) (Some evidence.ProducerIdentity.Kind) policy
 
 
 type IdentityKind = Human | Agent | Workflow
@@ -138,3 +134,75 @@ module RoleRegistry =
             && (m.ValidUntil |> Option.forall (fun t -> t > at)))
         |> List.collect (fun m -> Set.toList m.Roles)
         |> Set.ofList
+
+
+/// Timestamps in assessments and policies. An offset is mandatory: a naive
+/// local time cannot be ordered against the evaluation instant, so it is
+/// rejected rather than guessed.
+module Time =
+    let private offsetSuffix = Text.RegularExpressions.Regex(@"(Z|[+-]\d{2}:\d{2})$", Text.RegularExpressions.RegexOptions.CultureInvariant)
+
+    let parse (value: string) : Result<DateTimeOffset, string> =
+        let normalized = value.Replace("Z", "+00:00")
+        if String.IsNullOrWhiteSpace value || not (offsetSuffix.IsMatch normalized) then Error $"timestamp {value} must carry an explicit UTC offset"
+        else
+            match DateTimeOffset.TryParse(normalized, Globalization.CultureInfo.InvariantCulture, Globalization.DateTimeStyles.None) with
+            | true, t -> Ok t
+            | _ -> Error $"timestamp {value} is not ISO-8601"
+
+    let format (t: DateTimeOffset) = t.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", Globalization.CultureInfo.InvariantCulture)
+
+/// A security exception as written in an assessment. Nothing in this record is
+/// trusted: `Approved` and both identities are claims until
+/// `ExceptionApproval.evaluate` checks them against the role registry.
+type ExceptionRecord =
+    { Id: string
+      Approved: bool
+      CreatedAt: DateTimeOffset option
+      ExpiresAt: DateTimeOffset option
+      Covers: string list
+      Rationale: string option
+      CompensatingControls: string list
+      Evidence: string list
+      /// The exception author. None when absent or not a verified binding.
+      RequestedBy: PlatformIdentity option
+      /// The approver. None when absent or not a verified binding.
+      ApproverIdentity: PlatformIdentity option }
+
+/// Why an exception cannot satisfy a gate. Codes are stable contract values.
+type ExceptionRejection =
+    | NotApproved
+    | InvalidExpiry
+    | Expired
+    | InvalidCreation
+    | NotYetValid
+    | IncompleteRecord
+    | RequesterUnbound
+    | ApproverUnbound
+    | ApproverNotHuman
+    | SelfApproval
+    | ApproverLacksRole
+
+module ExceptionRejection =
+    let code = function
+        | NotApproved -> "not-approved"
+        | InvalidExpiry -> "invalid-expiry"
+        | Expired -> "expired"
+        | InvalidCreation -> "invalid-creation"
+        | NotYetValid -> "not-yet-valid"
+        | IncompleteRecord -> "incomplete-record"
+        | RequesterUnbound -> "requester-unbound"
+        | ApproverUnbound -> "approver-unbound"
+        | ApproverNotHuman -> "approver-not-human"
+        | SelfApproval -> "self-approval"
+        | ApproverLacksRole -> "approver-lacks-role"
+
+type ExceptionDecision =
+    | Honored of ExceptionRecord
+    | Rejected of ExceptionRecord * ExceptionRejection list
+
+type Assessment =
+    { Invariants: InvariantResult list
+      /// Kept as a list: order is part of the deterministic reason output.
+      UnknownSecurityEffects: string list
+      Exceptions: ExceptionRecord list }

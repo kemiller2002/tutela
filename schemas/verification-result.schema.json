@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kemiller2002/tutela/schemas/verification-result.schema.json",
+  "title": "Tutela verification result (tutela.verification/1)",
+  "description": "Machine-readable result of the authoritative Tutela gate. Owner: Tutela. Consumers MUST treat any verdict other than pass or conditional as not releasable, and MUST treat an unknown schema value as unavailable. Additive fields may appear within version 1; a breaking change publishes tutela.verification/2.",
+  "type": "object",
+  "required": ["schema", "tool", "evaluatedAt", "assessment", "subject", "verdict", "posture", "reasons", "declaredPosture", "declaredMatches", "findings", "exceptions", "policies", "limitations"],
+  "properties": {
+    "schema": { "const": "tutela.verification/1" },
+    "tool": {
+      "type": "object",
+      "required": ["name", "version", "implementation"],
+      "properties": {
+        "name": { "const": "tutela" },
+        "version": { "type": "string" },
+        "implementation": { "const": "fsharp" }
+      }
+    },
+    "evaluatedAt": { "type": "string", "format": "date-time" },
+    "assessment": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": ["string", "null"] },
+        "sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "subject": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["repository", "ref"],
+          "properties": { "repository": { "type": "string" }, "ref": { "type": "string" } }
+        }
+      ]
+    },
+    "verdict": { "enum": ["pass", "conditional", "blocked", "indeterminate", "unavailable"] },
+    "posture": { "enum": ["PASS", "CONDITIONAL", "BLOCKED", "INDETERMINATE", null] },
+    "reasons": { "type": "array", "items": { "type": "string" } },
+    "declaredPosture": { "type": ["string", "null"] },
+    "declaredMatches": { "type": ["boolean", "null"] },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ruleId", "severity", "subject", "message"],
+        "properties": {
+          "ruleId": { "type": "string", "pattern": "^TUTELA-(G[0-9]{3}|SD-[KV][0-9]{3})$" },
+          "severity": { "enum": ["blocking", "indeterminate", "advisory"] },
+          "subject": { "type": ["string", "null"] },
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "exceptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "status", "covers", "expiresAt", "rejections"],
+        "properties": {
+          "id": { "type": "string" },
+          "status": { "enum": ["honored", "rejected"] },
+          "covers": { "type": "array", "items": { "type": "string" } },
+          "expiresAt": { "type": ["string", "null"], "format": "date-time" },
+          "rejections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["code", "ruleId"],
+              "properties": {
+                "code": { "enum": ["not-approved", "invalid-expiry", "expired", "invalid-creation", "not-yet-valid", "incomplete-record", "requester-unbound", "approver-unbound", "approver-not-human", "self-approval", "approver-lacks-role"] },
+                "ruleId": { "type": "string", "pattern": "^TUTELA-G2[0-9]{2}$" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "policies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "path", "sha256"],
+        "properties": {
+          "name": { "type": "string" },
+          "path": { "type": "string" },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "limitations": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+  }
+}
