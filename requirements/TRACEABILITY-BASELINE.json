@@ -1,0 +1,11 @@
+{
+  "schema": "tutela.traceability-baseline/1",
+  "maxUntested": 77,
+  "status": "tracked-debt",
+  "policy": "No Tutela requirement or decision makes requirement-to-test traceability a release gate, so the count is a ratchet: `tutela trace` fails CI only if the number of requirements with no test reference rises above maxUntested. Lower maxUntested whenever the count drops; never raise it without a dated rationale here.",
+  "counting": "A requirement is traced only when a file under tests/ names its id (TUT-nnnn). A reference in src/ is reported as code-only and is not counted as coverage. A reference is a claim to be reviewed, not proof of complete verification.",
+  "history": [
+    { "date": "2026-10-05", "untested": 108, "note": "baseline before traceability tagging (0 of 108 referenced anywhere)" },
+    { "date": "2026-10-05", "untested": 77, "note": "parity corpus, exception-approval, sensitive-data and contract tests name the 31 requirements they exercise" }
+  ]
+}

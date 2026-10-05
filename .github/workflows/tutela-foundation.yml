@@ -26,6 +26,14 @@ jobs:
           test -f schemas/security-assessment.schema.json
           test -f schemas/exception.schema.json
           test -f docs/RESULTS-UI.md
+          test -f security/SENSITIVE-DATA-RULES.json
+          test -f schemas/verification-result.schema.json
+          test -f docs/VERIFICATION-CONTRACT.md
+          test -f docs/decisions/0001-gate-authority.md
+          test -f requirements/TRACEABILITY-BASELINE.json
+          python -m json.tool security/SENSITIVE-DATA-RULES.json >/dev/null
+          python -m json.tool requirements/TRACEABILITY-BASELINE.json >/dev/null
+          python -m json.tool tests/parity/corpus.json >/dev/null
           python -m json.tool .echelon/tutela.json >/dev/null
           python -m json.tool security/PROVENANCE-AUTHORITY.json >/dev/null
           python -m json.tool security/TRUST-ROOT-CHANGE.json >/dev/null
@@ -65,12 +73,49 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Build and test F# gate
+      - name: Every project is in the solution
+        # Prevention: a project that is not in Tutela.sln would silently escape
+        # the build below (the F# CLI did, and never compiled).
+        shell: bash
         run: |
-          dotnet build src/Tutela.Core/Tutela.Core.fsproj --configuration Release
-          dotnet run --project tests/Tutela.Core.Tests/Tutela.Core.Tests.fsproj --configuration Release
-      - name: Test Python conformance oracle
-        run: python -m unittest discover -s tests -v
+          set -euo pipefail
+          diff <(git ls-files '*.fsproj' '*.csproj' | sort) <(dotnet sln Tutela.sln list | tail -n +3 | tr '\\' '/' | sort)
+      - name: Build all projects (warnings are errors)
+        run: dotnet build Tutela.sln --configuration Release
+      - name: Test F# gate authority (unit, exception approval, parity corpus, contract)
+        run: dotnet run --project tests/Tutela.Core.Tests/Tutela.Core.Tests.fsproj --configuration Release --no-build
+      - name: Test Python conformance oracle (migration bridge, docs/decisions/0001)
+        run: |
+          python -m unittest discover -s tests -v
+          python tests/parity/generate_corpus.py --check
+      - name: F# CLI end-to-end and differential against the oracle
+        run: bash tests/cli/e2e.sh src/Tutela.Cli/bin/Release/net10.0/tutela.dll
+      - name: Migration bridge expiry
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f src/tutela_gate.py ] && [ "$(date -u +%Y-%m-%d)" \> "2027-01-31" ]; then
+            echo "The Python conformance bridge expired on 2027-01-31 (docs/decisions/0001-gate-authority.md)."
+            echo "Retire src/tutela_gate.py or record a dated, owned extension of the decision."
+            exit 1
+          fi
+      - name: Secret scan (Tutela sensitive-data catalog, TUTELA-SD-V*)
+        run: dotnet src/Tutela.Cli/bin/Release/net10.0/tutela.dll scan-secrets --output /tmp/tutela-secret-scan.json
+      - name: Requirement traceability (ratchet, tracked debt)
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet src/Tutela.Cli/bin/Release/net10.0/tutela.dll trace --output /tmp/tutela-traceability.json
+          python - >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import json
+          r = json.load(open("/tmp/tutela-traceability.json"))
+          print("### Tutela requirement traceability")
+          print(f"- requirements: {r['requirementsTotal']}")
+          print(f"- referenced by tests: {r['tracedByTests']}")
+          print(f"- referenced in code only: {r['referencedInCodeOnly']}")
+          print(f"- not referenced: {r['unreferenced']}")
+          print(f"- untested: {r['untested']} (ratchet max {r['maxUntested']}, {r['status']})")
+          PY
       - name: Set up Node.js for lifecycle smoke
         uses: actions/setup-node@v4
         with:
@@ -89,19 +134,37 @@ jobs:
         run: |
           PYTHONPATH=src python src/tutela_present.py assessments/TUTELA-SELF-2026-0001.json > /tmp/tutela-self-view.json
           PYTHONPATH=src python src/tutela_render.py assessments/TUTELA-SELF-2026-0001.json /tmp/tutela-self-report.html
-      - name: Produce digest-bearing CI evidence artifact
+      - name: Verify example posture (F# gate authority)
+        shell: bash
+        run: |
+          dotnet src/Tutela.Cli/bin/Release/net10.0/tutela.dll gate examples/security-assessment.json --check-declared \
+            --output /tmp/tutela-example-verification.json || [ $? -eq 1 ]
+      - name: Verify self-assessment postures (F# gate authority)
+        shell: bash
+        run: |
+          for f in assessments/*.json; do
+            dotnet src/Tutela.Cli/bin/Release/net10.0/tutela.dll gate "$f" --check-declared --output /dev/null || [ $? -eq 1 ] || exit 1
+          done
+      - name: Produce digest-bearing CI evidence artifacts
         env:
           SUBJECT_REF: ${{ github.sha }}
           RUN_REF: ${{ github.run_id }}
           WORKFLOW_REF: ${{ github.workflow_ref }}
         run: |
-          python src/tutela_evidence.py src/tutela_gate.py \
-            --id SEC-EVD-900 --type Test --source "Tutela deterministic gate" \
+          python src/tutela_evidence.py src/Tutela.Core/Gate.fs \
+            --id SEC-EVD-900 --type Test --source "Tutela deterministic gate (F# authority)" \
             --subject-ref "$SUBJECT_REF" --producer "GitHub Actions" \
             --producer-identity-type workflow --producer-identity-value tutela-foundation \
             --provenance-kind ci --provenance-issuer github-actions --run-ref "$RUN_REF" \
             --workflow-ref "$WORKFLOW_REF" --output /tmp/tutela-ci-evidence.json
+          python src/tutela_evidence.py /tmp/tutela-secret-scan.json \
+            --id SEC-EVD-901 --type SecretScan --source "tutela scan-secrets (tutela.secret-scan/1)" \
+            --subject-ref "$SUBJECT_REF" --producer "GitHub Actions" \
+            --producer-identity-type workflow --producer-identity-value tutela-foundation \
+            --provenance-kind ci --provenance-issuer github-actions --run-ref "$RUN_REF" \
+            --workflow-ref "$WORKFLOW_REF" --output /tmp/tutela-secret-scan-evidence.json
           python -m json.tool /tmp/tutela-ci-evidence.json >/dev/null
+          python -m json.tool /tmp/tutela-secret-scan-evidence.json >/dev/null
           mkdir -p evidence/runs
           cp /tmp/tutela-ci-evidence.json evidence/runs/current-ci-evidence.json
       - name: Persist provenance artifacts
@@ -110,10 +173,12 @@ jobs:
           name: tutela-provenance-${{ github.sha }}
           path: |
             /tmp/tutela-ci-evidence.json
+            /tmp/tutela-secret-scan.json
+            /tmp/tutela-secret-scan-evidence.json
+            /tmp/tutela-traceability.json
+            /tmp/tutela-example-verification.json
             evidence/runs/current-ci-evidence.json
             /tmp/tutela-self-view.json
             /tmp/tutela-self-report.html
           if-no-files-found: error
           retention-days: 30
-      - name: Verify example posture
-        run: python src/tutela_gate.py examples/security-assessment.json --check-declared || [ $? -eq 1 ]
