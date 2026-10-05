@@ -1,0 +1,99 @@
+{
+  "schema": "tutela.sensitive-data-rules/1",
+  "id": "tutela-sensitive-data-rules",
+  "version": "1.0.0",
+  "owner": "kemiller2002/tutela",
+  "authority": "Tutela is the single owner of these rule ids. Consumers (Praxis, Aegis and others) reference rules by id and must not redefine them locally; a gap is raised against this catalog.",
+  "compatibility": "Rule ids are stable and never reused. Patterns use the portable subset of regular-expression syntax that .NET and Python share (no possessive quantifiers, no inline flags, no variable-length lookbehind).",
+  "keyRules": [
+    {
+      "id": "TUTELA-SD-K001",
+      "name": "secret",
+      "keys": ["secret", "client_secret", "client-secret", "clientsecret"],
+      "match": "exact-case-insensitive"
+    },
+    {
+      "id": "TUTELA-SD-K002",
+      "name": "token",
+      "keys": ["token", "access_token", "access-token", "accesstoken", "refresh_token", "refresh-token", "refreshtoken", "bearer"],
+      "match": "exact-case-insensitive"
+    },
+    {
+      "id": "TUTELA-SD-K003",
+      "name": "password",
+      "keys": ["password", "passwd"],
+      "match": "exact-case-insensitive"
+    },
+    {
+      "id": "TUTELA-SD-K004",
+      "name": "api-key",
+      "keys": ["apikey", "api_key", "api-key"],
+      "match": "exact-case-insensitive"
+    },
+    {
+      "id": "TUTELA-SD-K005",
+      "name": "authorization",
+      "keys": ["authorization", "auth-header", "cookie"],
+      "match": "exact-case-insensitive"
+    },
+    {
+      "id": "TUTELA-SD-K006",
+      "name": "credential",
+      "keys": ["credential", "credentials"],
+      "match": "exact-case-insensitive"
+    },
+    {
+      "id": "TUTELA-SD-K007",
+      "name": "private-key",
+      "keys": ["privatekey", "private_key", "private-key"],
+      "match": "exact-case-insensitive"
+    }
+  ],
+  "valueRules": [
+    {
+      "id": "TUTELA-SD-V001",
+      "name": "github-token",
+      "pattern": "\\bgh[pousr]_[A-Za-z0-9]{30,}"
+    },
+    {
+      "id": "TUTELA-SD-V002",
+      "name": "github-fine-grained-token",
+      "pattern": "\\bgithub_pat_[A-Za-z0-9_]{20,}"
+    },
+    {
+      "id": "TUTELA-SD-V003",
+      "name": "openai-style-secret-key",
+      "pattern": "\\bsk-[A-Za-z0-9_-]{20,}"
+    },
+    {
+      "id": "TUTELA-SD-V004",
+      "name": "aws-access-key-id",
+      "pattern": "\\bAKIA[0-9A-Z]{16}\\b"
+    },
+    {
+      "id": "TUTELA-SD-V005",
+      "name": "google-api-key",
+      "pattern": "\\bAIza[0-9A-Za-z_-]{35}"
+    },
+    {
+      "id": "TUTELA-SD-V006",
+      "name": "slack-token",
+      "pattern": "\\bxox[abprs]-[A-Za-z0-9-]{10,}"
+    },
+    {
+      "id": "TUTELA-SD-V007",
+      "name": "pem-private-key",
+      "pattern": "-----BEGIN [A-Z ]*PRIVATE KEY-----"
+    },
+    {
+      "id": "TUTELA-SD-V008",
+      "name": "json-web-token",
+      "pattern": "\\beyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}"
+    }
+  ],
+  "keyMatchSemantics": "A key rule matches an object member name exactly, ignoring case. Substring matching (as Aegis redaction uses) is a stricter consumer choice and is allowed; matching fewer keys than this catalog is not.",
+  "limitations": [
+    "Pattern rules recognise common credential shapes only; they do not detect arbitrary high-entropy secrets, encoded values or secrets in git history.",
+    "A clean result is not evidence that no secret exists (TUT-0004)."
+  ]
+}

@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Tutela semantic validator and deterministic release-posture gate.
 
+CONFORMANCE ORACLE ONLY. The authoritative gate is the F# implementation
+(src/Tutela.Core, CLI src/Tutela.Cli); see docs/decisions/0001-gate-authority.md.
+This module is retained under an expiring migration bridge so the F# port can
+be compared against it (tests/parity). Do not add production behavior here.
+
 No third-party dependencies. This engine does not discover vulnerabilities.
 It derives posture from explicit assessment state and fails closed on malformed
 or contradictory security state.
@@ -11,11 +16,28 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 POSTURES={"PASS","CONDITIONAL","BLOCKED","INDETERMINATE"}
-SENSITIVE_KEYS={"secret","token","password","apiKey","api_key","authorization","credential","privateKey","private_key"}
 INV_STATES={"Verified","Violated","Unknown","Stale","NotApplicable"}
 DEFAULT_AUTHORITY_POLICY=Path(__file__).resolve().parents[1]/"security"/"PROVENANCE-AUTHORITY.json"
 DEFAULT_TRUST_ROOT_POLICY=Path(__file__).resolve().parents[1]/"security"/"TRUST-ROOT-CHANGE.json"
 DEFAULT_ROLE_REGISTRY=Path(__file__).resolve().parents[1]/"security"/"ROLE-REGISTRY.json"
+DEFAULT_SENSITIVE_CATALOG=Path(__file__).resolve().parents[1]/"security"/"SENSITIVE-DATA-RULES.json"
+# Exception approval: accepting risk is a security-owner decision by a human
+# (TUT-1103). Mirrors Tutela.Core.ExceptionApproval; see tests/parity.
+EXCEPTION_APPROVER_ROLE="security-owner"
+IDENTITY_KINDS={"human","agent","workflow"}
+
+def load_sensitive_catalog(path=None):
+    """Sensitive-data rules are owned by security/SENSITIVE-DATA-RULES.json (single owner)."""
+    import re
+    c=json.loads(Path(path or DEFAULT_SENSITIVE_CATALOG).read_text())
+    return {"keys":[(r["id"],{k.lower() for k in r["keys"]}) for r in c["keyRules"]],
+            "values":[(r["id"],re.compile(r["pattern"])) for r in c["valueRules"]]}
+
+_SENSITIVE=None
+def sensitive_catalog():
+    global _SENSITIVE
+    if _SENSITIVE is None: _SENSITIVE=load_sensitive_catalog()
+    return _SENSITIVE
 
 def load_role_registry(path=None):
     return json.loads(Path(path or DEFAULT_ROLE_REGISTRY).read_text())
@@ -105,11 +127,28 @@ def parse_time(value):
     if not value: return None
     return datetime.fromisoformat(value.replace("Z","+00:00"))
 
+def sensitive_match(value, catalog=None):
+    """Depth-first ('field'|'value', rule id) for the first sensitive key or value, else None."""
+    catalog=catalog or sensitive_catalog()
+    if isinstance(value,dict):
+        for k,v in value.items():
+            for rid,keys in catalog["keys"]:
+                if isinstance(k,str) and k.lower() in keys: return ("field",rid)
+            m=sensitive_match(v,catalog)
+            if m: return m
+        return None
+    if isinstance(value,list):
+        for v in value:
+            m=sensitive_match(v,catalog)
+            if m: return m
+        return None
+    if isinstance(value,str):
+        for rid,rx in catalog["values"]:
+            if rx.search(value): return ("value",rid)
+    return None
+
 def contains_sensitive_value(value, key=None):
-    if key and key.lower() in {x.lower() for x in SENSITIVE_KEYS}: return True
-    if isinstance(value,dict): return any(contains_sensitive_value(v,k) for k,v in value.items())
-    if isinstance(value,list): return any(contains_sensitive_value(v) for v in value)
-    return False
+    return sensitive_match({key:value} if key else value) is not None
 
 def validate(a, authority_policy=None, trust_policy=None, role_registry=None, at=None):
     errors=[]
@@ -124,7 +163,8 @@ def validate(a, authority_policy=None, trust_policy=None, role_registry=None, at
     if policy:
         if not policy.get("id") or not policy.get("version"): errors.append("policy.id and policy.version are required when policy is supplied")
         if policy.get("allowGateWeakening") is True: errors.append("assessment cannot authorize gate weakening")
-    if contains_sensitive_value(a.get("evidence",[])): errors.append("evidence contains a sensitive field")
+    sensitive=sensitive_match(a.get("evidence",[]))
+    if sensitive: errors.append("evidence contains a sensitive "+sensitive[0])
     subject=a.get("subject") or {}
     if not subject.get("repository"): errors.append("subject.repository is required")
     if not subject.get("ref"): errors.append("subject.ref is required")
@@ -206,16 +246,62 @@ def validate(a, authority_policy=None, trust_policy=None, role_registry=None, at
                 if not e.get(k): errors.append(f"exceptions[{i}].{k} is required")
     return errors
 
-def valid_exceptions(a, at=None):
-    at=at or now_utc()
-    out=[]
-    for e in a.get("exceptions",[]):
-        try:
-            if e.get("approved") is True and parse_time(e.get("expiresAt")) and parse_time(e["expiresAt"])>at:
-                out.append(e)
-        except ValueError:
-            pass
+def _aware_time(value):
+    """An offset-qualified timestamp, or None. Naive times cannot be ordered and are rejected."""
+    if not isinstance(value,str) or not value: return None
+    try: t=parse_time(value)
+    except ValueError: return None
+    return t if t.tzinfo is not None else None
+
+def _canonical_subject(identity):
+    sid=identity.get("subjectId")
+    if isinstance(sid,bool): return None
+    if isinstance(sid,int): sid=str(sid)
+    if not (isinstance(sid,str) and sid.isascii() and sid.isdigit() and sid[0]!="0" and len(sid)<=20 and int(sid)<=2**64-1): return None
+    return sid
+
+def exception_identity(identity):
+    """A verified binding with a known kind and canonical subject id, else None."""
+    if not identity_binding_valid(identity) or identity.get("kind") not in IDENTITY_KINDS: return None
+    sid=_canonical_subject(identity)
+    return (identity.get("provider"),sid) if sid else None
+
+def _non_empty_strings(value):
+    return [x for x in value if isinstance(x,str) and x] if isinstance(value,list) else []
+
+def exception_rejections(e, role_registry=None, at=None):
+    """Every reason exception `e` cannot satisfy a gate at `at`; empty means honored.
+
+    Codes mirror Tutela.Core.ExceptionRejection. The approver must be a verified
+    human identity, differ from the requester, and hold security-owner in the
+    role registry at `at`; assessment role claims are not authoritative.
+    """
+    at=at or now_utc(); role_registry=role_registry or load_role_registry(); out=[]
+    if e.get("approved") is not True: out.append("not-approved")
+    expires=_aware_time(e.get("expiresAt")); created=_aware_time(e.get("createdAt"))
+    if expires is None: out.append("invalid-expiry")
+    elif expires<=at: out.append("expired")
+    if created is None: out.append("invalid-creation")
+    elif created>at: out.append("not-yet-valid")
+    elif expires is not None and created>=expires: out.append("invalid-creation")
+    rationale=e.get("rationale")
+    if (not _non_empty_strings(e.get("covers")) or not (isinstance(rationale,str) and rationale.strip())
+        or not _non_empty_strings(e.get("compensatingControls")) or not _non_empty_strings(e.get("evidence"))):
+        out.append("incomplete-record")
+    requester_raw=e.get("requestedByIdentity"); approver_raw=e.get("approverIdentity")
+    requester=exception_identity(requester_raw) if isinstance(requester_raw,dict) else None
+    approver=exception_identity(approver_raw) if isinstance(approver_raw,dict) else None
+    if requester is None: out.append("requester-unbound")
+    if approver is None: out.append("approver-unbound")
+    else:
+        if approver_raw.get("kind")!="human": out.append("approver-not-human")
+        if requester is not None and requester==approver: out.append("self-approval")
+        if EXCEPTION_APPROVER_ROLE not in registered_roles(approver_raw,role_registry,at): out.append("approver-lacks-role")
     return out
+
+def valid_exceptions(a, at=None, role_registry=None):
+    at=at or now_utc()
+    return [e for e in a.get("exceptions",[]) if isinstance(e,dict) and not exception_rejections(e,role_registry,at)]
 
 def derive(a, at=None, authority_policy=None, trust_policy=None, role_registry=None):
     at=at or now_utc()
@@ -239,9 +325,9 @@ def derive(a, at=None, authority_policy=None, trust_policy=None, role_registry=N
     unknown=[x["id"] for x in inv if x["state"]=="Unknown"]
     stale=[x["id"] for x in inv if x["state"]=="Stale"]
     missing=[x["id"] for x in inv if x["state"]=="Verified" and not x.get("evidence")]
-    exceptions=valid_exceptions(a,at)
+    exceptions=valid_exceptions(a,at,role_registry)
     accepted=set()
-    for e in exceptions: accepted.update(e.get("covers",[]))
+    for e in exceptions: accepted.update(_non_empty_strings(e.get("covers")))
     hard=[x for x in violated+unknown_effects if x not in accepted]
     if hard: return "BLOCKED", hard
     indeterminate=[x for x in unknown+stale+missing if x not in accepted]

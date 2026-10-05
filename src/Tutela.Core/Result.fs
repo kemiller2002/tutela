@@ -8,6 +8,7 @@ module ResultBuilder =
         member _.ReturnFrom (r: Result<_, _>) = r
         member _.Bind (r, f) = Result.bind f r
         member _.Zero () = Ok ()
+        member _.Combine (r: Result<unit, 'e>, f: unit -> Result<'a, 'e>) = Result.bind f r
         member _.Delay f = f
         member _.Run f = f ()
 
