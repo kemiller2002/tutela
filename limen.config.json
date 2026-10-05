@@ -1,0 +1,8 @@
+{
+  "configurationVersion": 1,
+  "boundary": {
+    "notApplicable": {
+      "rationale": "Tutela is a security evidence and release-gate tool (F# CLI with Python conformance fixtures). It has no browser or WASM boundary code, and its Limen requirement applies only when a browser or WASM boundary exists (previously recorded as requiredWhen: browser-or-wasm-boundary-exists). Tutela inventories Limen boundaries in other systems (TUT-0804); that is not a boundary of its own."
+    }
+  }
+}

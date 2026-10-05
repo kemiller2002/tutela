@@ -1,1 +1,21 @@
-{"schemaVersion":1,"tool":"limen","package":"@echelon-foundry/typescript-wasm-kernel","installedVersion":"0.6.1","configurationVersion":1,"requiredWhen":"browser-or-wasm-boundary-exists"}
+{
+  "schemaVersion": 1,
+  "tool": "limen",
+  "package": "@echelon-foundry/limen",
+  "installedVersion": "0.7.0",
+  "configurationVersion": 1,
+  "managedArtifacts": [
+    {
+      "path": ".github/workflows/limen-verify.yml",
+      "ownership": "tool-owned",
+      "disposition": "installed",
+      "sha256": "be23b1a435f92f9198b4f8c6925ef2908e7d413b3a1069afa043ef174cbfb09b"
+    },
+    {
+      "path": "limen.config.json",
+      "ownership": "user-owned",
+      "disposition": "installed",
+      "sha256": "6372f5a258a26d343dc6e6856fe65074b8363e24b77bac20a651e16395ff9062"
+    }
+  ]
+}
