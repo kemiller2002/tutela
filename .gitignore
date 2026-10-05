@@ -1,0 +1,17 @@
+# .NET build output (scoped so the tracked top-level bin/tutela.mjs is not affected)
+src/**/bin/
+src/**/obj/
+tests/**/bin/
+tests/**/obj/
+tools/**/bin/
+tools/**/obj/
+*.user
+.vs/
+TestResults/
+
+# Python
+__pycache__/
+*.pyc
+
+# Local CI evidence output
+evidence/runs/
