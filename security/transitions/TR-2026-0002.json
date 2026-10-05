@@ -47,6 +47,5 @@
   ],
   "status": "approved-by-repository-owner",
 
-  "status": "pending-independent-approval",
   "approvalRequired": "The repository owner (github:737074) must review this transition and add an approval entry with evidence, set weakeningExplicitlyAuthorized to true, and set status to approved-by-repository-owner before merge. Because the registry at the base has no members, the approval is made under the repository-owner role, as for TR-2026-0001, not under a registry role. The implementing agent cannot approve its own change (TUT-0006, AGENTS.md rules 3-4). The CI transition check verifies only paths and digests; it does not establish approval."
 }
