@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "TR-2026-0002",
+  "paths": [
+    "security/ROLE-REGISTRY.json"
+  ],
+  "baseRef": "a7c333d3c9ffb40af47120a1b1fc3a908f9a9a8a",
+  "previousDigest": {
+    "algorithm": "sha256",
+    "value": "c4bf9c4c61d252750f486a649c0175e5845afab3bb38eff9450f3d693106c5e6"
+  },
+  "newDigest": {
+    "algorithm": "sha256",
+    "value": "96b643f3940bffa6edefda476dd03d37b8f6a8990c0752456c3d469595945b05"
+  },
+  "rationale": "Owner decision: register the repository owner, GitHub human account github:737074 (display login kemiller2002, non-authoritative), as security-owner in security/ROLE-REGISTRY.json. At the base the registry has no memberships, so under default-deny no security exception can be honored and no trust-root transition can be approved through the registry (TR-2026-0001 was approved under the out-of-registry role repository-owner). This membership lets the owner approve security exceptions and future trust-root transitions through the registry. The identity is bound by provider:subjectId, not login; the login-to-id mapping was observed by the implementing agent via the GitHub API at GET /user (authenticated, 2026-10-05T12:36Z) and GET /repos/kemiller2002/tutela owner (2026-10-05T12:37:08Z), both returning login kemiller2002 id 737074. The membership is time-bounded: validFrom 2026-10-05T12:38:00Z, validUntil 2027-10-05T12:38:00Z (one-year review horizon; after expiry the registry denies and the membership must be renewed through a new transition). Registry version 1.1.0 -> 1.2.0. No other registry field, semantics or identity provider changes.",
+  "weakening": true,
+  "weakeningExplicitlyAuthorized": false,
+  "weakeningAnalysis": "Classified as weakening. Policy has no explicit rule saying whether adding a registry member is weakening, so this record takes the conservative reading: at the base, memberships is empty and default is deny, so every exception approval and every registry-backed trust-root approval fails closed. After this change one human identity can approve trust-root changes, authorize trust-root weakening (security-owner has mayAuthorizeWeakening=true in security/TRUST-ROOT-CHANGE.json) and approve security exceptions that move a gate verdict from BLOCKED to CONDITIONAL. That widens who can relax the gate from nobody to one person, which is a relaxation of the effective control even though no rule text is removed. Bounds on the effect: one human identity only (agents and workflows gain nothing); bound by immutable numeric id with platform-api evidence, not by login; expires 2027-10-05T12:38:00Z; default deny, registry-only role source and identityBindingRequired are unchanged; exceptions still require a requester distinct from the approver, a validity window, compensating controls and evidence. Residual concern recorded as negative knowledge: the only identity able to approve this transition is the identity it empowers. That is a bootstrap of the registry from the repository owner's authority, not independent review; no second human reviewer exists in the registry to provide one. Not checked: whether any other consumer reads ROLE-REGISTRY.json and would interpret the new member differently.",
+  "changedBy": "Claude Code implementation agent (governance/security-owner-membership, https://claude.ai/code/session_01CmPhre2cFonbHerxVSsmrL)",
+  "changedByIdentity": null,
+  "approvals": [],
+  "status": "pending-independent-approval",
+  "approvalRequired": "The repository owner (github:737074) must review this transition and add an approval entry with evidence, set weakeningExplicitlyAuthorized to true, and set status to approved-by-repository-owner before merge. Because the registry at the base has no members, the approval is made under the repository-owner role, as for TR-2026-0001, not under a registry role. The implementing agent cannot approve its own change (TUT-0006, AGENTS.md rules 3-4). The CI transition check verifies only paths and digests; it does not establish approval."
+}

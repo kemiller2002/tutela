@@ -1,9 +1,38 @@
 {
   "schemaVersion": 1,
   "id": "tutela-role-registry",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "default": "deny",
-  "memberships": [],
+  "memberships": [
+    {
+      "identity": {
+        "kind": "human",
+        "provider": "github",
+        "subjectId": "737074",
+        "login": "kemiller2002",
+        "bindingVerified": true,
+        "bindingEvidence": [
+          {
+            "kind": "platform-api-observation",
+            "issuer": "github",
+            "sourceRef": "github-api:/user",
+            "observedAt": "2026-10-05T12:36:00Z"
+          },
+          {
+            "kind": "platform-api-observation",
+            "issuer": "github",
+            "sourceRef": "github-api:/repos/kemiller2002/tutela",
+            "observedAt": "2026-10-05T12:37:08Z"
+          }
+        ]
+      },
+      "roles": [
+        "security-owner"
+      ],
+      "validFrom": "2026-10-05T12:38:00Z",
+      "validUntil": "2027-10-05T12:38:00Z"
+    }
+  ],
   "semantics": {
     "identityKey": "provider:subjectId",
     "roleSource": "registry-only",
