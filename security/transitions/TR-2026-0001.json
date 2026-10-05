@@ -34,7 +34,7 @@
   "approvals": [
     {
       "approved": true,
-      "approvedAt": "<now>",
+      "approvedAt": "2026-10-05T11:40:00Z",
       "approverIdentity": {
         "kind": "human",
         "provider": "github",
@@ -46,7 +46,7 @@
             "kind": "platform-api-observation",
             "issuer": "github",
             "sourceRef": "github-api:/users/kemiller2002",
-            "observedAt": "<now>"
+            "observedAt": "2026-10-05T11:40:00Z"
           }
         ]
       },
@@ -57,6 +57,6 @@
     }
   ],
 
-  "status": "pending-independent-approval",
+  "status": "approved-by-repository-owner",
   "approvalRequired": "An independent security-owner or security-reviewer, recorded in security/ROLE-REGISTRY.json, must review this transition and add an approval with evidence before merge. The implementing agent cannot approve its own change (TUT-0006, AGENTS.md rules 3-4). The CI transition check verifies only paths and digests; it does not establish approval."
 }
