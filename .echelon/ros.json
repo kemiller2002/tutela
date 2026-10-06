@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "tool": "ros",
   "package": "@echelon-foundry/repository-operating-system",
-  "installedVersion": "3.7.1",
+  "installedVersion": "3.7.2",
   "configurationVersion": 1,
   "profile": "greenfield",
   "managedArtifacts": [
     {
       "path": ".echelon/toolchain.json",
       "ownership": "shared",
-      "sha256": "139a49930a071facf704068180051078b8d65b6c84be3235a11fcd96bc3a63e6"
+      "sha256": "3f4b52f72fb4b263ff86e1678a5be2e6908eff1dc76581a376463ddb42592160"
     },
     {
       "path": ".editorconfig",
@@ -19,7 +19,7 @@
     {
       "path": ".gitattributes",
       "ownership": "user-owned",
-      "sha256": "489fb811f97deb0befb181e8eda6330bd155b6e1a3d7cc4b717391c31cf870f0"
+      "sha256": "faf43061bbb2a4f74fbaf596edfc350f44a09c205a801bda943ee20c09d6bc89"
     },
     {
       "path": ".github/copilot-instructions.md",
@@ -34,12 +34,12 @@
     {
       "path": ".gitignore",
       "ownership": "user-owned",
-      "sha256": "049c30ec8b89fd21ad4a06709d7f662c94887692a3affee2387a78235505f6f4"
+      "sha256": "934386f3492a64d084e5ff3f9407df2d7f7005b48b9a9fb72ac8d97f460df5ef"
     },
     {
       "path": "AGENTS.md",
       "ownership": "shared",
-      "sha256": "774770a595dc174fe8d665e002e52847ee9d30e848f38d73a6ef0eafac72a164"
+      "sha256": "28ca378b307fd467af38087cccb76e0eae1ceff6a81115da0f1eba24966d9d40"
     },
     {
       "path": "BOOTSTRAP.md",
@@ -154,7 +154,7 @@
     {
       "path": "docs/fallback-reconciliation.md",
       "ownership": "tool-owned",
-      "sha256": "43c7b4f11c733f14c1db9d3135d53928e2c08224e36d34dd7ebfcec05834f47d"
+      "sha256": "d10d1a749ba2b868b382981ff3d90c349bbc45911d9c0698ab25db71dda45f31"
     },
     {
       "path": "docs/ordo-observation.md",
@@ -169,7 +169,7 @@
     {
       "path": "docs/remote-protocol.md",
       "ownership": "tool-owned",
-      "sha256": "115bcdcadf466b53812883f4a0a5276ac47a9d66daada9943d07a4299aae42f4"
+      "sha256": "91835e62fe1496e907308758bebae320aca5ad5f65471c305189d7ec8b09de89"
     },
     {
       "path": "docs/work-adapter-contract.md",
