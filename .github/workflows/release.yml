@@ -1,0 +1,239 @@
+name: Release
+
+# Two ways to cut a release, one publish path:
+#
+#  1. Push an annotated tag vX.Y.Z.
+#  2. Run "Release" from the Actions tab on main with the version and the full
+#     commit SHA. The `tag` job verifies that commit and pushes the tag with
+#     GITHUB_TOKEN; `publish` then builds and publishes from that tag in this
+#     same run.
+#
+# The dispatch path has to live in this file, not a separate workflow: a tag
+# pushed by GITHUB_TOKEN never starts another workflow.
+#
+# The release is the packed npm archive (`npm pack`) attached to a GitHub
+# release with a SHA256SUMS file. The archive is exercised in a clean
+# repository before it is published, and the Echelon Registry records its
+# digest.
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+  cancel-in-progress: false
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without the v (for example 0.1.0). Must equal package.json and the CLI VERSION at the commit."
+        required: true
+        type: string
+      commit:
+        description: "Full 40-character SHA of the commit on main to release."
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  # Dispatch only. Fails closed before anything is tagged or published.
+  tag:
+    name: Verify the commit and tag it
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the tag
+      actions: read # find the commit's CI run
+      checks: read # read that run's check runs
+    env:
+      VERSION: ${{ inputs.version }}
+      COMMIT: ${{ inputs.commit }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Require well-formed inputs, dispatched from main
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "::error::Run this workflow from main, not $GITHUB_REF"
+            exit 1
+          fi
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version '$VERSION' is not X.Y.Z"
+            exit 1
+          fi
+          if [[ ! "$COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::commit '$COMMIT' is not a full lowercase 40-character SHA"
+            exit 1
+          fi
+
+      - name: Check out the release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit }}
+          fetch-depth: 0
+
+      - name: Require the commit to be on main
+        shell: bash
+        run: |
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "$COMMIT" origin/main; then
+            echo "::error::$COMMIT is not main or an ancestor of main"
+            exit 1
+          fi
+
+      - name: Require package.json and the CLI at the commit to carry the version
+        shell: bash
+        run: |
+          package_version="$(git show "$COMMIT:package.json" | jq -r .version)"
+          if [[ "$package_version" != "$VERSION" ]]; then
+            echo "::error::package.json at $COMMIT is $package_version, not $VERSION"
+            exit 1
+          fi
+          cli_version="$(git show "$COMMIT:bin/tutela.mjs" | sed -n 's/^const VERSION = "\(.*\)";$/\1/p')"
+          if [[ "$cli_version" != "$VERSION" ]]; then
+            echo "::error::bin/tutela.mjs at $COMMIT reports '$cli_version', not $VERSION"
+            exit 1
+          fi
+
+      - name: Require Tutela Foundation CI to have passed on the commit
+        shell: bash
+        run: |
+          run="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/tutela-foundation.yml/runs?head_sha=$COMMIT&event=push&per_page=1" \
+            --jq '.workflow_runs[0] // empty | [.id, .status, (.conclusion // "none"), .check_suite_id] | @tsv')"
+          if [[ -z "$run" ]]; then
+            echo "::error::no Tutela Foundation CI push run found for $COMMIT"
+            exit 1
+          fi
+          read -r run_id status conclusion suite_id <<<"$run"
+          echo "CI run $run_id: $status/$conclusion"
+          if [[ "$status" != "completed" || "$conclusion" != "success" ]]; then
+            echo "::error::CI run $run_id on $COMMIT is $status/$conclusion, not completed/success"
+            exit 1
+          fi
+          checks="$(gh api --paginate "repos/$GITHUB_REPOSITORY/check-suites/$suite_id/check-runs?per_page=100" \
+            --jq '.check_runs[] | [.name, .status, (.conclusion // "none")] | @tsv')"
+          echo "$checks"
+          if [[ -z "$checks" ]]; then
+            echo "::error::CI run $run_id has no check runs"
+            exit 1
+          fi
+          if awk -F'\t' '$2 != "completed" || ($3 != "success" && $3 != "skipped" && $3 != "neutral")' <<<"$checks" | grep -q .; then
+            echo "::error::a CI check run on $COMMIT did not succeed"
+            exit 1
+          fi
+
+      # Idempotent: a re-run finds the tag it pushed and accepts it, but a tag
+      # at any other commit stops the release.
+      - name: Create and push the annotated tag
+        shell: bash
+        run: |
+          tag="v$VERSION"
+          existing="$(git ls-remote --tags origin "refs/tags/$tag" "refs/tags/$tag^{}")"
+          if [[ -n "$existing" ]]; then
+            target="$(awk -v ref="refs/tags/$tag^{}" '$2 == ref { print $1 }' <<<"$existing")"
+            [[ -z "$target" ]] && target="$(awk '{ print $1 }' <<<"$existing" | head -n 1)"
+            if [[ "$target" != "$COMMIT" ]]; then
+              echo "::error::$tag already exists at $target, not $COMMIT"
+              exit 1
+            fi
+            echo "$tag already exists at $COMMIT; not re-creating it"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$tag" "$COMMIT" -m "Tutela $VERSION"
+          git push origin "refs/tags/$tag"
+
+  publish:
+    name: Build, exercise and publish the release
+    needs: tag
+    # Runs for a tag push (where `tag` is skipped) or after `tag` succeeds.
+    if: ${{ !cancelled() && (github.event_name == 'push' || needs.tag.result == 'success') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub release and upload its assets
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+      RELEASE_COMMIT: ${{ inputs.commit }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out the release tag
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Require tag, package and CLI versions to match
+        shell: bash
+        run: |
+          tag_version="${RELEASE_TAG#v}"
+          package_version="$(node -p "require('./package.json').version")"
+          cli_version="$(node bin/tutela.mjs --version)"
+          if [[ "$package_version" != "$tag_version" || "$cli_version" != "$tag_version" ]]; then
+            echo "::error::package.json $package_version and CLI $cli_version must both equal tag $RELEASE_TAG"
+            exit 1
+          fi
+          if [[ -n "$RELEASE_COMMIT" && "$(git rev-parse HEAD)" != "$RELEASE_COMMIT" ]]; then
+            echo "::error::$RELEASE_TAG resolves to $(git rev-parse HEAD), not $RELEASE_COMMIT"
+            exit 1
+          fi
+
+      # The full Tutela gate (F# build and tests, parity, trust root) is the
+      # Tutela Foundation CI run the `tag` job required on this commit.
+      - name: Exercise the lifecycle from the source tree
+        shell: bash
+        run: |
+          root="$(mktemp -d)"
+          node bin/tutela.mjs init --root "$root"
+          node bin/tutela.mjs verify --root "$root" --strict
+
+      # `--pack-destination` does not create the directory.
+      - name: Pack the release archive
+        shell: bash
+        run: |
+          mkdir -p release
+          npm pack --pack-destination ./release
+          ls -l release
+
+      # Install the real archive into a throwaway repository and run the
+      # lifecycle against it. This is the last gate before publishing.
+      - name: Exercise the packed archive in a clean repository
+        shell: bash
+        run: |
+          archive="$PWD/$(ls release/*.tgz)"
+          root="$(mktemp -d)"
+          git -C "$root" init -q
+          npm exec --yes --package="$archive" tutela -- --version
+          npm exec --yes --package="$archive" tutela -- init --root "$root"
+          npm exec --yes --package="$archive" tutela -- verify --strict --root "$root"
+          npm exec --yes --package="$archive" tutela -- status --root "$root"
+          test -f "$root/.echelon/tutela.json"
+          test -f "$root/.tutela/SECURITY-PROFILE.md"
+          grep -q "echelon:tutela:start" "$root/AGENTS.md"
+
+      - name: Write checksums
+        shell: bash
+        working-directory: release
+        run: |
+          sha256sum *.tgz > SHA256SUMS
+          cat SHA256SUMS
+
+      # Idempotent: an existing release is left alone, so a re-run after a
+      # later failure does not replace assets that may already be recorded.
+      - name: Create the GitHub release
+        shell: bash
+        run: |
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            echo "::notice::Release $RELEASE_TAG already exists; not replacing its assets"
+            exit 0
+          fi
+          gh release create "$RELEASE_TAG" --verify-tag \
+            --title "Tutela ${RELEASE_TAG#v}" \
+            --notes "Tutela ${RELEASE_TAG#v}: the packed @echelon-foundry/tutela archive (security-engineering lifecycle CLI, profile and schemas) and its SHA-256 checksums." \
+            release/*.tgz release/SHA256SUMS
