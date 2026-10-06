@@ -14,7 +14,7 @@ const payloads = [
   ["security/SECURITY-PROFILE.md", ".tutela/SECURITY-PROFILE.md"],
   ["schemas/security-invariant.schema.json", ".tutela/schemas/security-invariant.schema.json"],
   ["schemas/threat.schema.json", ".tutela/schemas/threat.schema.json"],
-  ["schemas/evidence.schema.json", ".tutela/schemas/evidence.schema.json"],
+  ["schemas/security-evidence.schema.json", ".tutela/schemas/security-evidence.schema.json"],
   ["schemas/security-assessment.schema.json", ".tutela/schemas/security-assessment.schema.json"],
   ["schemas/exception.schema.json", ".tutela/schemas/exception.schema.json"]
 ];

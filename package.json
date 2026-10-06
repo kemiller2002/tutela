@@ -17,7 +17,7 @@
     "security/SECURITY-PROFILE.md",
     "schemas/security-invariant.schema.json",
     "schemas/threat.schema.json",
-    "schemas/evidence.schema.json",
+    "schemas/security-evidence.schema.json",
     "schemas/security-assessment.schema.json",
     "schemas/exception.schema.json"
   ],

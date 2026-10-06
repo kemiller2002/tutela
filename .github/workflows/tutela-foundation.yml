@@ -22,7 +22,7 @@ jobs:
           test -f security/ROLE-REGISTRY.json
           test -f schemas/security-invariant.schema.json
           test -f schemas/threat.schema.json
-          test -f schemas/evidence.schema.json
+          test -f schemas/security-evidence.schema.json
           test -f schemas/security-assessment.schema.json
           test -f schemas/exception.schema.json
           test -f docs/RESULTS-UI.md

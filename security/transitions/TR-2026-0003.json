@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "TR-2026-0003",
+  "paths": [
+    "schemas/security-assessment.schema.json",
+    "schemas/security-evidence.schema.json",
+    "security/TRUST-ROOT-CHANGE.json"
+  ],
+  "baseRef": "94afcc91a84bd3b94a4ee639f169d0727eaac727",
+  "previousDigest": {
+    "algorithm": "sha256",
+    "value": "687129732eab098319237385b49fd590bf8071aad6d0403dfb49b3e6c73ade6e"
+  },
+  "newDigest": {
+    "algorithm": "sha256",
+    "value": "f7dc6cb42e01769b1db77d4ea087fbf0fef448f0768f7be70bca13d96c1326aa"
+  },
+  "rationale": "Relocation, not a content change. Tutela's evidence schema moves from schemas/evidence.schema.json to schemas/security-evidence.schema.json (git rename, content byte-identical: sha256 8b036168540175f9a47f3b832a48f1fe56805c27278f64caae785e6f3bdffdc4 at the base path and at the new path; the schema has no $id, so nothing inside it names its path). Reason: Praxis 3.7.1 installs its own tool-owned schemas/evidence.schema.json, and 'praxis init' refuses (exit 4, 'a different file already exists here and no installation records it') while Tutela owns that path, so Tutela cannot be brought under Praxis 3.7.1 governance. Changes to protected files: security/TRUST-ROOT-CHANGE.json replaces the protectedPaths entry schemas/evidence.schema.json with schemas/security-evidence.schema.json at the same position and bumps the policy version 1.5.0 -> 1.6.0; no other protected path, requirement, approval authority or transition-record rule changes. schemas/security-assessment.schema.json changes only evidence.items.$ref from evidence.schema.json to security-evidence.schema.json. Unprotected follow-on edits in the same change: package.json files, bin/tutela.mjs payload (installed target becomes .tutela/schemas/security-evidence.schema.json so the installed $ref resolves), the foundation CI required-artifact check, and docs/SECURITY-OWNERSHIP.md. After this change schemas/evidence.schema.json is Praxis-owned and is not a Tutela trust root.",
+  "weakening": false,
+  "weakeningAnalysis": "No protection is removed or relaxed for Tutela's evidence schema: the same bytes are protected under the new path, with the same requirements, approval authorities and exact path coverage, and the protected-path count is unchanged (19). The assessment schema still requires every evidence item to validate against the same evidence schema. Residual concerns recorded as negative knowledge: (1) the old path schemas/evidence.schema.json is no longer a protected path, so a later edit there needs no transition record; that is intended because the file there will be Praxis's, not Tutela's, but any consumer that resolves Tutela evidence semantics by the old path would silently get Praxis's schema instead. Not checked: whether any consumer outside this repository references Tutela's schema by the repository path schemas/evidence.schema.json. (2) Repositories that installed Tutela 0.1.0 have .tutela/schemas/evidence.schema.json; the next Tutela release installs .tutela/schemas/security-evidence.schema.json and the lifecycle CLI does not remove the old file. No release is cut in this change. (3) src/tutela_trust_root.py and the CI check evaluate protectedPaths from the head policy only, so the base path's removal from the protected set is covered by this record only through the digest of security/TRUST-ROOT-CHANGE.json, not by listing the old path.",
+  "changedBy": "Claude Code implementation agent (security/relocate-evidence-schema, https://claude.ai/code/session_01CmPhre2cFonbHerxVSsmrL)",
+  "changedByIdentity": null,
+  "approvals": [
+    {
+      "approved": true,
+      "approvedAt": "2026-10-06T12:39:42Z",
+      "approverIdentity": {
+        "kind": "human",
+        "provider": "github",
+        "subjectId": "737074",
+        "login": "kemiller2002",
+        "bindingVerified": true,
+        "bindingEvidence": [
+          {
+            "kind": "platform-api-observation",
+            "issuer": "github",
+            "sourceRef": "github-api:/repos/kemiller2002/tutela",
+            "observedAt": "2026-10-06T12:39:42Z"
+          }
+        ]
+      },
+      "role": "security-owner",
+      "evidence": [
+        "On 2026-10-06 the repository owner and registered security-owner (github:737074, security/ROLE-REGISTRY.json, valid until 2027-10-05T12:38:00Z) explicitly approved relocating Tutela's evidence schema so Praxis 3.7.1 can be installed, in the owner's own words 'Tutela move the files', given in the Claude Code session https://claude.ai/code/session_01CmPhre2cFonbHerxVSsmrL. approvedAt is the time this approval was recorded. The approval was relayed to the implementing agent through that session, not given as a GitHub review; the owner can revoke it by reverting this record."
+      ]
+    }
+  ],
+  "status": "approved-by-security-owner",
+  "approvalRequired": "Approval by a registered security-owner (security/ROLE-REGISTRY.json) is required before merge. The implementing agent cannot approve its own change (TUT-0006, AGENTS.md rules 3-4). The CI transition check verifies only paths and digests; it does not establish approval."
+}
