@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "TR-2026-0004",
+  "paths": [
+    "security/TRUST-ROOT-CHANGE.json",
+    "src/tutela_trust_root.py"
+  ],
+  "baseRef": "3e8e932860816c3e66c48ca4f1c2d587c451f909",
+  "previousDigest": {
+    "algorithm": "sha256",
+    "value": "64ef54bd1a9e197b0d7194bc228dd0d398aa64b4cad1826da23f001889c37b29"
+  },
+  "newDigest": {
+    "algorithm": "sha256",
+    "value": "e901181552a6e301ea68e5fc2cb3c7ac9624c489c6a5bd7d8ef65cef34fb8470"
+  },
+  "rationale": "Closes residual concern (3) of TR-2026-0003: src/tutela_trust_root.py and the CI step 'Detect protected trust-root changes' evaluated protectedPaths from the head policy only, so one change could remove a path from security/TRUST-ROOT-CHANGE.json and modify that path without the transition record listing it (reproduced against base 3e8e932: dropping src/tutela_gate.py from the list, editing it, and recording only the policy file passed with no errors). Changes to protected files: src/tutela_trust_root.py now (a) takes the protected set as the union of the base and head protectedPaths lists, (b) treats every path removed from the list as a protected change that the record must list exactly and digest-bind, (c) requires the record to carry an approved approval whose role and approver identity kind are authorized for trust-root-change by the base policy's approvalAuthorities, and (d) for a removal additionally requires that authority to have mayAuthorizeWeakening (security-owner). An absent head policy counts as removing every base path. security/TRUST-ROOT-CHANGE.json records these semantics in transitionRecord (protectedSetSource, removalIsProtectedChange, removalApprovalRequiresWeakeningAuthority, approvalAuthoritySource) and bumps the policy version 1.6.0 -> 1.7.0; the checker enforces them unconditionally, so editing those fields cannot switch the checks off. No protected path, requirement or approval authority changes. Unprotected follow-on edits in the same change: .github/workflows/tutela-foundation.yml delegates detection to the checker instead of an inline head-only filter; tests/test_tutela_trust_root.py adds 13 cases; docs/decisions/0001-gate-authority.md notes the semantics the F# port must keep.",
+  "weakening": false,
+  "weakeningAnalysis": "Strengthening only. Every change rejected at the base is still rejected: the head-only protected set is a subset of the union; exact path coverage and base/head digest binding are unchanged; a missing record still fails. New rejections: edits to paths dropped from protection in the same change, removals not listed in the record, records without an approval from a base-policy authority, and removals without a security-owner approval. The CI step now also fails on a malformed transition record even when no protected path changed. Residual concerns recorded as negative knowledge: (1) the approval check is structural; CI cannot establish that the approval happened, only that the record claims it with an authorized role and identity kind. (2) Only the last transition record in the diff is checked, as before. (3) The enforcing workflow .github/workflows/tutela-foundation.yml is not a protected path, so a change could edit the CI step itself; branch protection's required check is the only guard. (4) AGENTS.md rule 12 and docs/decisions/0001 item 4 put new security behavior in F# first; no F# trust-root diff checker exists (port tracked as issue #3 item 6), so this fix lands in the Python bridge executable, which is the only implementation CI runs for this check; the F# assessment-level trustRootChange validation (Validation.fs) has no base/head concept and is unchanged, so F#/Python parity is unaffected. Not checked: other consumers of security/TRUST-ROOT-CHANGE.json outside this repository.",
+  "changedBy": "Claude Code implementation agent (security/trust-root-base-union, https://claude.ai/code/session_01CmPhre2cFonbHerxVSsmrL)",
+  "changedByIdentity": null,
+  "approvals": [
+    {
+      "approved": true,
+      "approvedAt": "2026-10-06T12:53:51Z",
+      "approverIdentity": {
+        "kind": "human",
+        "provider": "github",
+        "subjectId": "737074",
+        "login": "kemiller2002",
+        "bindingVerified": true,
+        "bindingEvidence": [
+          {
+            "kind": "platform-api-observation",
+            "issuer": "github",
+            "sourceRef": "github-api:/repos/kemiller2002/tutela",
+            "observedAt": "2026-10-06T12:39:42Z"
+          }
+        ]
+      },
+      "role": "security-owner",
+      "evidence": [
+        "On 2026-10-06 the repository owner and registered security-owner (github:737074, security/ROLE-REGISTRY.json, valid until 2027-10-05T12:38:00Z) explicitly approved this trust-root hardening and this transition record, in the owner's own words 'I approve', given in the Claude Code session https://claude.ai/code/session_01CmPhre2cFonbHerxVSsmrL. The approval was relayed to the implementing agent by the orchestrating agent of that session; the implementing agent did not observe the owner's words directly, and the approval was not given as a GitHub review. approvedAt is the time this approval was recorded. The owner can revoke it by reverting this record."
+      ]
+    }
+  ],
+  "status": "approved-by-security-owner",
+  "approvalRequired": "Approval by a registered security-owner (security/ROLE-REGISTRY.json) is required before merge. The implementing agent cannot approve its own change (TUT-0006, AGENTS.md rules 3-4). The CI transition check verifies paths, digests and that the record names an approval from an authorized role; it does not establish that the approval happened."
+}
