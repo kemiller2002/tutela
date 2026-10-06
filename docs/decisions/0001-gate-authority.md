@@ -49,7 +49,7 @@ These non-F# executables still run in CI. All are inside this bridge:
 | Executable | Role | Retirement |
 |---|---|---|
 | `src/tutela_gate.py` | conformance oracle | delete together with `tests/test_tutela_parity.py`; freeze `tests/parity/corpus.json` as F#-only expectations |
-| `src/tutela_trust_root.py` | CI trust-root transition check | port to `tutela trust-root` (issue #3, item 6); the port must keep the base-and-head protected-set union, removal coverage and base-policy approval authority recorded in TR-2026-0004 |
+| `src/tutela_trust_root.py` | CI trust-root transition check | port to `tutela trust-root` (issue #3, item 6); the port must keep the base-and-head protected-set union, removal coverage and base-policy approval authority recorded in TR-2026-0004, and the per-record validation, union coverage and immutability of merged records recorded in TR-2026-0005 |
 | `src/tutela_evidence.py`, `tutela_identity.py` | evidence / identity-binding producers | port (issue #3, items 5 and 7) |
 | `src/tutela_present.py`, `tutela_render.py` | presentation projection | port, or move to Forma/Folio per TUT-1703/1704 |
 | `bin/tutela.mjs` | Conditor lifecycle installer | tracked by issue #6 (native distribution) |

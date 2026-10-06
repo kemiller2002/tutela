@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "tutela-trust-root-change",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "protectedPaths": [
     "security/PROVENANCE-AUTHORITY.json",
     "security/TRUST-ROOT-CHANGE.json",
@@ -21,7 +21,8 @@
     "src/Tutela.Core/Validation.fs",
     "src/Tutela.Core/Gate.fs",
     "src/Tutela.Core/Verification.fs",
-    "src/Tutela.Cli/Program.fs"
+    "src/Tutela.Cli/Program.fs",
+    ".github/workflows/tutela-foundation.yml"
   ],
   "requirements": {
     "changeId": true,
@@ -76,6 +77,9 @@
     "protectedSetSource": "union-of-base-and-head",
     "removalIsProtectedChange": true,
     "removalApprovalRequiresWeakeningAuthority": true,
-    "approvalAuthoritySource": "base"
+    "approvalAuthoritySource": "base",
+    "recordsChecked": "every-added-record",
+    "coverage": "union-of-added-records",
+    "mergedRecordsImmutable": true
   }
 }
