@@ -15,3 +15,6 @@ __pycache__/
 
 # Local CI evidence output
 evidence/runs/
+
+# Praxis local lock files
+.ros/locks/
