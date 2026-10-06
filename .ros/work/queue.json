@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "tutela",
-  "nextSeq": 2,
+  "nextSeq": 4,
   "items": [
     {
       "id": "WI-0001",
@@ -23,6 +23,48 @@
         "id": "anthropic/claude-code",
         "provider": "anthropic",
         "model": "claude-opus-5-5",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0002",
+      "title": "Trust-root enforcement must union BASE and HEAD protected-path lists and require a transition record for removals",
+      "description": null,
+      "tags": [],
+      "priority": "high",
+      "status": "complete",
+      "attachments": [],
+      "createdAt": "2026-10-06T12:50:49.703Z",
+      "updatedAt": "2026-10-06T12:54:56Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0003",
+      "title": "tutela init/upgrade: remove stale .tutela/schemas/evidence.schema.json from 0.1.0 installs only when its sha256 matches the shipped 0.1.0 file (8b036168...); never delete user-modified content",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-06T12:54:38.657Z",
+      "updatedAt": "2026-10-06T12:54:38.657Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
         "runtime": "claude-code"
       },
       "source": "manual",
