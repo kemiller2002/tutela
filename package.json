@@ -1,0 +1,27 @@
+{
+  "name": "@echelon-foundry/tutela",
+  "version": "0.1.0",
+  "description": "Tutela security-engineering repository lifecycle: installs and verifies the evidence-scoped security profile and schemas in a repository.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kemiller2002/tutela.git"
+  },
+  "type": "module",
+  "bin": {
+    "tutela": "bin/tutela.mjs"
+  },
+  "files": [
+    "bin/tutela.mjs",
+    "README.md",
+    "security/SECURITY-PROFILE.md",
+    "schemas/security-invariant.schema.json",
+    "schemas/threat.schema.json",
+    "schemas/evidence.schema.json",
+    "schemas/security-assessment.schema.json",
+    "schemas/exception.schema.json"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}
