@@ -58,14 +58,11 @@ jobs:
             exit 0
           fi
           # The protected set is the union of the base and head policy lists, and
-          # removing a path from protection is itself a protected change
-          # (src/tutela_trust_root.py), so detection is delegated to the checker.
-          record="$(git diff --name-only "$base" HEAD -- 'security/transitions/*.json' | tail -n 1)"
-          if [ -n "$record" ]; then
-            python src/tutela_trust_root.py --base "$base" --head HEAD --record "$record"
-          else
-            python src/tutela_trust_root.py --base "$base" --head HEAD
-          fi
+          # removing a path from protection is itself a protected change. The
+          # checker discovers and validates every transition record in the diff,
+          # requires their union to cover every protected change, and rejects
+          # changes to merged records (src/tutela_trust_root.py).
+          python src/tutela_trust_root.py --base "$base" --head HEAD
       - name: Set up .NET for authoritative F# implementation
         uses: actions/setup-dotnet@v4
         with:

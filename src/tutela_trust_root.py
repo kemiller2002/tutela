@@ -8,6 +8,13 @@ itself a protected change: the record must list the removed path and carry an
 approval from an authority allowed to authorize weakening (security-owner).
 Approval authorities are taken from the base policy, so a change cannot grant
 itself the authority that approves it.
+
+Every transition record the change adds is checked on its own (exact paths
+within the protected change, base/head digests over its own paths, an
+authorized approval, security-owner approval for any removal it covers), and
+the union of their paths must cover every protected change. A transition
+record that already exists at the base is merged history: modifying,
+renaming or deleting it is rejected.
 """
 from __future__ import annotations
 import argparse, hashlib, json, subprocess
@@ -15,6 +22,7 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 POLICY_PATH="security/TRUST-ROOT-CHANGE.json"
+TRANSITION_DIRECTORY="security/transitions"
 
 def run_git(*args):
     return subprocess.check_output(["git",*args],cwd=ROOT,text=True).strip()
@@ -61,28 +69,64 @@ def has_authorized_approval(record,policy,weakening):
                and (a.get("role"),(a.get("approverIdentity") or {}).get("kind")) in allowed
                for a in record.get("approvals",[]))
 
-def verify(base,head,record,policy):
+def record_directories(*policies):
+    """The transition directories of the base and head policies, always including the default."""
+    return sorted({TRANSITION_DIRECTORY}|{d.rstrip("/") for p in policies
+        for d in [(p.get("transitionRecord") or {}).get("directory")] if isinstance(d,str) and d.strip("/")})
+
+def load_record(ref,path):
+    data=blob(ref,path)
+    if data is None: return None
+    try: return json.loads(data)
+    except ValueError: return None
+
+def transition_records(base,head,directories):
+    """(path, state, record) for every transition record the change adds, modifies or deletes.
+
+    state is "added" when the path is absent at the base; anything else touches merged history.
+    Renames are reported as a deletion and an addition, so a moved record is a deleted one.
+    """
+    out=run_git("diff","--name-only","--no-renames",base,head,"--",*directories)
+    paths=sorted(x for x in out.splitlines() if x.endswith(".json"))
+    return [(path,"added" if blob(base,path) is None else "modified" if blob(head,path) is not None else "deleted",load_record(head,path))
+            for path in paths]
+
+def check_record(path,record,actual,removed,base,head,base_policy):
+    """Errors for one added transition record, each prefixed with the record's path."""
+    if not isinstance(record,dict): return [f"{path}: transition record is not a JSON object"]
+    paths=record.get("paths")
+    if not isinstance(paths,list) or not paths or not all(isinstance(x,str) for x in paths):
+        return [f"{path}: transition record lists no paths"]
+    declared=sorted(set(paths)); covered_removals=sorted(set(declared)&set(removed))
+    return [f"{path}: {msg}" for failed,msg in [
+        (not set(declared)<=set(actual),"transition paths do not exactly match protected files changed: not changed or not protected: "+", ".join(sorted(set(declared)-set(actual)))),
+        (record.get("previousDigest")!=transition_digest(base,declared),"transition previousDigest does not match base protected content"),
+        (record.get("newDigest")!=transition_digest(head,declared),"transition newDigest does not match head protected content"),
+        (not has_authorized_approval(record,base_policy,False),"transition record has no approved approval from an authorized trust-root role"),
+        (bool(covered_removals) and not has_authorized_approval(record,base_policy,True),"removing protected paths requires an approved security-owner transition: "+", ".join(covered_removals)),
+    ] if failed]
+
+def verify(base,head,policy):
     """policy is the head policy; the base policy is read from the base ref."""
     base_policy=load_policy(base)
     removed=sorted(protected_set(base_policy)-protected_set(policy))
     protected=protected_set(base_policy)|protected_set(policy)
     actual=sorted((set(changed_paths(base,head))&protected)|set(removed))
-    if not actual: return []
-    if not record: return ["protected trust-root files changed without a transition record: "+", ".join(actual)]
-    declared=sorted(set(record.get("paths",[])))
-    expected_before=transition_digest(base,actual); expected_after=transition_digest(head,actual)
-    return [msg for failed,msg in [
-        (declared!=actual,"transition paths do not exactly match protected files changed"),
-        (record.get("previousDigest")!=expected_before,"transition previousDigest does not match base protected content"),
-        (record.get("newDigest")!=expected_after,"transition newDigest does not match head protected content"),
-        (not has_authorized_approval(record,base_policy,False),"transition record has no approved approval from an authorized trust-root role"),
-        (bool(removed) and not has_authorized_approval(record,base_policy,True),"removing protected paths requires an approved security-owner transition: "+", ".join(removed)),
-    ] if failed]
+    entries=transition_records(base,head,record_directories(base_policy,policy))
+    history=[f"{path}: transition record already exists at base and must not be changed ({state})" for path,state,_ in entries if state!="added"]
+    added=[(path,record) for path,state,record in entries if state=="added"]
+    if not added:
+        return history+(["protected trust-root files changed without a transition record: "+", ".join(actual)] if actual else [])
+    per_record=[e for path,record in added for e in check_record(path,record,actual,removed,base,head,base_policy)]
+    covered=set().union(*[set(r["paths"]) for _,r in added if isinstance(r,dict) and isinstance(r.get("paths"),list) and all(isinstance(x,str) for x in r["paths"])])
+    uncovered=sorted(set(actual)-covered)
+    return history+per_record+(["transition paths do not exactly match protected files changed: not covered by any transition record: "+", ".join(uncovered)] if uncovered else [])
 
 def main():
-    p=argparse.ArgumentParser(); p.add_argument("--base",required=True); p.add_argument("--head",default="HEAD"); p.add_argument("--record")
-    a=p.parse_args(); record=json.loads(Path(a.record).read_text()) if a.record else None
-    errors=verify(a.base,a.head,record,load_policy(a.head))
+    p=argparse.ArgumentParser(description="Every transition record in the change is discovered from the base..head diff.")
+    p.add_argument("--base",required=True); p.add_argument("--head",default="HEAD")
+    a=p.parse_args()
+    errors=verify(a.base,a.head,load_policy(a.head))
     print(json.dumps({"base":a.base,"head":a.head,"errors":errors},indent=2))
     return 1 if errors else 0
 if __name__=="__main__": raise SystemExit(main())

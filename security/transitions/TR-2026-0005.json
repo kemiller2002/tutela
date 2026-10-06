@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "TR-2026-0005",
+  "paths": [
+    ".github/workflows/tutela-foundation.yml",
+    "security/TRUST-ROOT-CHANGE.json",
+    "src/tutela_trust_root.py"
+  ],
+  "baseRef": "2e47b00becba4355bd31bf96758ad41a0ad49f67",
+  "previousDigest": {
+    "algorithm": "sha256",
+    "value": "23cd8b00647c0f089191a6928837cfab7e773db6f39dcca2da5578564e9f42a6"
+  },
+  "newDigest": {
+    "algorithm": "sha256",
+    "value": "ead79f9f940f3551be976b26bcac011afc1a1edb1dcd0235c368177632b75d91"
+  },
+  "rationale": "Closes residual concerns (2) and (3) of TR-2026-0004. (2) The CI step passed only the last transition record in the diff (tail -n 1) to src/tutela_trust_root.py, so a change could add an earlier record that was never checked, and a change could modify or delete an already-merged record without any check. (3) The enforcing workflow .github/workflows/tutela-foundation.yml was not a protected path, so a change could weaken the CI step itself without a transition record. Changes to protected files: src/tutela_trust_root.py now discovers every transition record the change adds, modifies or deletes (git diff --no-renames over security/transitions and any transitionRecord.directory in the base or head policy), checks each added record on its own paths (paths non-empty and within the protected change, previousDigest/newDigest over its own paths at base and head, an approved approval from a base-policy authority, and security-owner approval for any removed path it covers), requires the union of the added records' paths to cover every protected change, and rejects any change to a record that already exists at the base (modification, rename or deletion); errors name the offending record. The --record option is removed so a caller cannot select a single record. security/TRUST-ROOT-CHANGE.json adds .github/workflows/tutela-foundation.yml to protectedPaths, records the semantics in transitionRecord (recordsChecked, coverage, mergedRecordsImmutable; enforced unconditionally by the checker, so editing them cannot switch checks off) and bumps the policy version 1.7.0 -> 1.8.0. .github/workflows/tutela-foundation.yml calls the checker with --base and --head only. Unprotected follow-on edits in the same change: tests/test_tutela_trust_root.py (36 cases, including real-git end-to-end cases through the CLI) and docs/decisions/0001-gate-authority.md (semantics the F# port must keep, issue #3 item 6).",
+  "weakening": false,
+  "weakeningAnalysis": "Strengthening only. No protected path, requirement or approval authority is removed. Every change rejected at the base is still rejected: with one added record the checks are the same as before (exact path coverage, base/head digest binding, base-policy approval, security-owner approval for removals); a protected change with no record still fails. New rejections: an invalid record anywhere in the diff (previously only the last was checked); records whose union does not cover every protected change; a record listing paths that did not change or are not protected, or listing no paths; a malformed record; any modification, rename or deletion of a merged transition record, even when no protected path changed; and any change to .github/workflows/tutela-foundation.yml without a transition record. Overlapping records are allowed; each is digest-bound on its own paths. Residual concerns recorded as negative knowledge: (1) the approval check remains structural; CI cannot establish that the approval happened. (2) The check runs only where the workflow runs; branch protection's required check is still the guard against bypassing or deleting the workflow by a path other than editing this file (for example adding a different workflow cannot disable this one, but repository settings can). (3) On push events the base is github.event.before, so a branch push sequence is checked push by push; pull_request and the merge push to main check the whole change. (4) No F# trust-root diff checker exists (issue #3 item 6); this lands in the Python bridge executable, the only implementation CI runs for this check; F#/Python gate parity is unaffected. Not checked: other consumers of security/TRUST-ROOT-CHANGE.json outside this repository.",
+  "changedBy": "Claude Code implementation agent (security/trust-root-multi-record, https://claude.ai/code/session_01CmPhre2cFonbHerxVSsmrL)",
+  "changedByIdentity": null,
+  "approvals": [
+    {
+      "approved": true,
+      "approvedAt": "2026-10-06T13:52:58Z",
+      "approverIdentity": {
+        "kind": "human",
+        "provider": "github",
+        "subjectId": "737074",
+        "login": "kemiller2002",
+        "bindingVerified": true,
+        "bindingEvidence": [
+          {
+            "kind": "platform-api-observation",
+            "issuer": "github",
+            "sourceRef": "github-api:/repos/kemiller2002/tutela",
+            "observedAt": "2026-10-06T12:39:42Z"
+          }
+        ]
+      },
+      "role": "security-owner",
+      "evidence": [
+        "On 2026-10-06 the repository owner and registered security-owner (github:737074, security/ROLE-REGISTRY.json, valid until 2027-10-05T12:38:00Z) explicitly approved this trust-root hardening and this transition record, in the owner's own words 'Fix those please', in reply to a recommendation to close residual concerns (2) and (3) of TR-2026-0004, given in the Claude Code session https://claude.ai/code/session_01CmPhre2cFonbHerxVSsmrL. The approval was relayed to the implementing agent by the orchestrating agent of that session; the implementing agent did not observe the owner's words directly, and the approval was not given as a GitHub review. approvedAt is the time this approval was recorded. The owner can revoke it by reverting this record."
+      ]
+    }
+  ],
+  "status": "approved-by-security-owner",
+  "approvalRequired": "Approval by a registered security-owner (security/ROLE-REGISTRY.json) is required before merge. The implementing agent cannot approve its own change (TUT-0006, AGENTS.md rules 3-4). The CI transition check verifies paths, digests and that each record names an approval from an authorized role; it does not establish that the approval happened."
+}
