@@ -12,8 +12,14 @@ raised against this repository (TUT-1706), not added locally.
 |---|---|---|
 | `security/SENSITIVE-DATA-RULES.json` | `tutela.sensitive-data-rules/1` | sensitive key names (`TUTELA-SD-K*`) and credential value shapes (`TUTELA-SD-V*`) |
 | `schemas/verification-result.schema.json` | `tutela.verification/1` | gate verdict, findings with stable rule ids, exception outcomes |
+| `schemas/security-evidence.schema.json` | Tutela Security Evidence | one evidence item in an assessment (`security-assessment.schema.json` `evidence[]`) |
 | `tutela scan-secrets` output | `tutela.secret-scan/1` | secret-scan evidence (rule id, path, line; values never emitted) |
 | `tutela trace` output | `tutela.traceability/1` | requirement-to-test traceability counts |
+
+`schemas/evidence.schema.json` is not a Tutela artifact. Tutela's evidence schema
+moved to `schemas/security-evidence.schema.json` (transition TR-2026-0003) because
+Praxis installs its own schema at the old path. The trust-root policy protects the
+new path; the old path belongs to Praxis.
 
 The gate itself applies the catalog to assessment evidence. A sensitive key gives
 "evidence contains a sensitive field", and a credential-shaped value gives

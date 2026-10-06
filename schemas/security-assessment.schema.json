@@ -170,7 +170,7 @@
     "evidence": {
       "type": "array",
       "items": {
-        "$ref": "evidence.schema.json"
+        "$ref": "security-evidence.schema.json"
       }
     },
     "unknownSecurityEffects": {
