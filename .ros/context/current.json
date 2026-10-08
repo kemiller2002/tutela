@@ -4,7 +4,7 @@
   "repository": "tutela",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-10-06T12:43:32.046Z",
-  "updatedAt": "2026-10-08T07:15:41.412Z",
+  "updatedAt": "2026-10-08T23:57:42.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -300,6 +300,48 @@
       },
       "completedAt": "2026-10-08T07:15:41.412Z",
       "conclusion": "Ordo 1.5.0 through echelon-current 1.2.0; local checks passed (log: /tmp/claude-0/-home-user-praxis/7bcb3038-90cc-534e-8e5b-9be62aa1de8c/scratchpad/sweep/logs/tutela.log)"
+    },
+    {
+      "id": "WI-0008",
+      "type": "task",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": ".echelon/limen.json"
+        },
+        {
+          "type": "tests",
+          "path": ".github/workflows/limen-verify.yml"
+        }
+      ],
+      "updatedAt": "2026-10-08T23:57:42.000Z",
+      "telemetryExecutionIds": [
+        "EXE-20261008T235605179Z-3fd77cb8"
+      ],
+      "latestCheckpoint": {
+        "id": "26ca83afe6916e3e93e65e74",
+        "recordedAt": "2026-10-08T23:57:28.000Z",
+        "executionId": "EXE-20261008T235605179Z-3fd77cb8",
+        "repository": "tutela",
+        "branch": "chore/limen-0.9.0",
+        "commit": "4ec0763c627434844feb1bfed7dec17719b92cc1",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/tutela"
+        },
+        "remoteBranch": "chore/limen-0.9.0",
+        "remoteCommit": "4ec0763c627434844feb1bfed7dec17719b92cc1",
+        "summary": "Limen upgraded 0.7.1 -> 0.9.0; limen verify --strict, build and tests pass",
+        "nextAction": "Merge the PR once every check on the head SHA passes",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T23:57:42.000Z",
+      "conclusion": "Limen upgraded 0.7.1 -> 0.9.0; limen verify --strict, build and tests pass"
     }
   ]
 }
