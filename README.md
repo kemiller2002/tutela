@@ -7,3 +7,9 @@ Tutela never asserts that a system is secure. It establishes which defined secur
 Core model: Asset -> Trust Boundary -> Threat -> Security Invariant -> Control -> Evidence -> Finding/Unknown -> Release Posture.
 
 Integrates with Ordo/SDE, ROS, Aegis, Praxis, Forma, Folio, Limen and Conditor.
+
+## License
+
+Source available under PolyForm Noncommercial 1.0.0 for permitted noncommercial uses. Commercial use requires a separate license from Echelon Foundry. Previously distributed versions remain subject to the licenses under which they were released.
+
+Commercial licensing information is forthcoming.
