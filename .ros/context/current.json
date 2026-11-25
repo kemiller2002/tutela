@@ -4,7 +4,7 @@
   "repository": "tutela",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-10-06T12:43:32.046Z",
-  "updatedAt": "2026-10-08T23:57:42.000Z",
+  "updatedAt": "2026-11-25T17:47:36Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -342,6 +342,47 @@
       },
       "completedAt": "2026-10-08T23:57:42.000Z",
       "conclusion": "Limen upgraded 0.7.1 -> 0.9.0; limen verify --strict, build and tests pass"
+    },
+    {
+      "id": "WI-0009",
+      "type": "task",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "conditor.json"
+        },
+        {
+          "type": "tests",
+          "path": ".conditor/lock.json"
+        }
+      ],
+      "updatedAt": "2026-11-25T17:47:36Z",
+      "telemetryExecutionIds": [
+        "EXE-20261125T174613730Z-08f3debe"
+      ],
+      "latestCheckpoint": {
+        "id": "c21c307b2b2f81b343dd1409",
+        "recordedAt": "2026-11-25T17:47:36Z",
+        "executionId": "EXE-20261125T174613730Z-08f3debe",
+        "repository": "tutela",
+        "branch": "claude/vigila-implementation-jdeps1",
+        "commit": "3e71b8821842b04659c289b928248f540e77360d",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/tutela"
+        },
+        "remoteBranch": "claude/vigila-implementation-jdeps1",
+        "remoteCommit": "3e71b8821842b04659c289b928248f540e77360d",
+        "summary": "echelon-current 1.42.0 via conditor upgrade --current; build 0 warnings; validate passes",
+        "nextAction": "Merge when CI is green",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-11-25T17:47:36Z"
     }
   ]
 }

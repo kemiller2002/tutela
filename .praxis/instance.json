@@ -1,0 +1,12 @@
+{
+  "schema": "praxis.instance/1",
+  "instanceId": "pxi-e20e81b1193e4c09bcb9317ca77908fe",
+  "createdAt": "2026-11-25T17:46:19.113Z",
+  "createdWith": "3.25.0",
+  "repository": {
+    "provider": "github",
+    "repositoryId": null,
+    "repository": "kemiller2002/tutela"
+  },
+  "predecessors": []
+}
