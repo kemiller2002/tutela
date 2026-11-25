@@ -11,4 +11,4 @@
 | WI-0006 | Move tutela to Praxis 3.7.2, Ordo 1.4.2; adopt Conditor | complete | praxis, ordo, toolchain, conditor | medium |
 | WI-0007 | Move tutela to Ordo 1.5.0 via echelon-current 1.2.0 (conditor upgrade --current) | complete |  | medium |
 | WI-0008 | Upgrade Limen from 0.7.1 to 0.9.0 (echelon-current) | complete |  | medium |
-| WI-0009 | Upgrade to echelon-current 1.42.0 (Praxis 3.25.0, Ordo 1.20.0) | active |  | medium |
+| WI-0009 | Upgrade to echelon-current 1.42.0 (Praxis 3.25.0, Ordo 1.20.0) | complete |  | medium |
