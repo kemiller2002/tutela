@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "tutela",
-  "nextSeq": 9,
+  "nextSeq": 10,
   "items": [
     {
       "id": "WI-0001",
@@ -172,6 +172,27 @@
       "attachments": [],
       "createdAt": "2026-10-08T23:55:39.290Z",
       "updatedAt": "2026-10-08T23:57:42.000Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0009",
+      "title": "Upgrade to echelon-current 1.42.0 (Praxis 3.25.0, Ordo 1.20.0)",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-11-25T17:46:12.946Z",
+      "updatedAt": "2026-11-25T17:46:13Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
