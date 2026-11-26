@@ -4,7 +4,7 @@
   "repository": "tutela",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-10-06T12:43:32.046Z",
-  "updatedAt": "2026-11-26T00:29:56.000Z",
+  "updatedAt": "2026-11-26T00:32:02.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -387,13 +387,47 @@
     {
       "id": "WI-0010",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-11-26T00:29:56.000Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "conditor.json"
+        },
+        {
+          "type": "implementation",
+          "path": ".conditor/lock.json"
+        },
+        {
+          "type": "tests",
+          "path": "tests"
+        }
+      ],
+      "updatedAt": "2026-11-26T00:32:02.000Z",
       "telemetryExecutionIds": [
         "EXE-20261126T002957861Z-b2429b19"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "4370dd99182ba8a06006d91b",
+        "recordedAt": "2026-11-26T00:32:00.000Z",
+        "executionId": "EXE-20261126T002957861Z-b2429b19",
+        "repository": "tutela",
+        "branch": "claude/vigila-implementation-jdeps1",
+        "commit": "112983ed60f93593506a925d54d9f6c163052df1",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/tutela"
+        },
+        "remoteBranch": "claude/vigila-implementation-jdeps1",
+        "remoteCommit": "112983ed60f93593506a925d54d9f6c163052df1",
+        "summary": "Moved tutela to echelon-current 1.43.0 via Conditor 0.10.30 (Praxis 3.25.0 -> 3.26.0); Release build, 246 F# checks, 101 Python tests, 34 CLI e2e checks and Limen verify pass.",
+        "nextAction": "Open draft PR and watch CI",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-11-26T00:32:02.000Z"
     }
   ]
 }
